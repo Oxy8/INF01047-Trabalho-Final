@@ -69,9 +69,7 @@ struct CubicBézierCurve {
 
 typedef std::vector<CubicBézierCurve> ClosedCompositeCubicBézierCurve;
 
-
-
- glm::mat4 prepareDrawBird(ClosedCompositeCubicBézierCurve curve, float time) {
+glm::mat4 prepareDrawBird(ClosedCompositeCubicBézierCurve curve, float time) {
     
     int n_segments = curve.size();
     if (n_segments == 0) { return Matrix_Identity(); };
@@ -99,20 +97,22 @@ typedef std::vector<CubicBézierCurve> ClosedCompositeCubicBézierCurve;
 
 // uniform Catmull–Rom
 ClosedCompositeCubicBézierCurve generateClosedBezierCycle(const std::vector<glm::vec4>& points) {
+    
     int n = points.size();
+    
     ClosedCompositeCubicBézierCurve curves;
 
     for (int i = 0; i < n; i++) {
-        int im1 = (i - 1 + n) % n;
-        int ip1 = (i + 1) % n;
-        int ip2 = (i + 2) % n;
+        int prev = (i - 1 + n) % n;
+        int next = (i + 1) % n;
+        int next_next = (i + 2) % n;
 
         CubicBézierCurve c;
 
         c.p1 = points[i];
-        c.p2 = points[i] + (points[ip1] - points[im1]) / 6.0f;
-        c.p3 = points[ip1] - (points[ip2] - points[i]) / 6.0f;
-        c.p4 = points[ip1];
+        c.p2 = points[i] + (points[next] - points[prev]) / 6.0f;
+        c.p3 = points[next] - (points[next_next] - points[i]) / 6.0f;
+        c.p4 = points[next];
 
         curves.push_back(c);
     }
