@@ -22,6 +22,7 @@ uniform mat4 projection;
 #define SPHERE 0
 #define BUNNY  1
 #define PLANE  2
+#define BIRD  3
 uniform int object_id;
 
 // Parâmetros da axis-aligned bounding box (AABB) do modelo
@@ -64,9 +65,19 @@ void main()
     // Vetor que define o sentido da câmera em relação ao ponto atual.
     vec4 v = normalize(camera_position - p);
 
+    float n_dot_l = dot(n,l);
+
+    vec4 r = -l + 2*n*n_dot_l;
+    float r_dot_v = v.x * r.x + v.y * r.y + v.z * r.z;
+
     // Coordenadas de textura U e V
     float U = 0.0;
     float V = 0.0;
+
+    vec3 Kd; // Refletância difusa
+    vec3 Ks; // Refletância especular
+    vec3 Ka; // Refletância ambiente
+    float q; // Expoente especular para o modelo de iluminação de Phong
 
     if ( object_id == SPHERE )
     {
@@ -117,14 +128,41 @@ void main()
         U = texcoords.x;
         V = texcoords.y;
     }
+    else {
+        Kd = vec3(0.08, 0.4, 0.8);
+        Ks = vec3(0.8, 0.8, 0.8);
+        Ka = Kd/2;
+        q = 32.0;
+    }
 
-    // Obtemos a refletância difusa a partir da leitura da imagem TextureImage0
-    vec3 Kd0 = texture(TextureImage0, vec2(U,V)).rgb;
+    if (object_id < 3) {
+        // Obtemos a refletância difusa a partir da leitura da imagem TextureImage0
+        vec3 Kd0 = texture(TextureImage0, vec2(U,V)).rgb;
 
-    // Equação de Iluminação
-    float lambert = max(0,dot(n,l));
+        // Equação de Iluminação
+        float lambert = max(0, n_dot_l);
 
-    color.rgb = Kd0 * (lambert + 0.01);
+        color.rgb = Kd0 * (lambert + 0.01);
+    } else {
+        // Espectro da fonte de iluminação
+        vec3 I = vec3(1.0,1.0,1.0); 
+
+        // Termo difuso utilizando a lei dos cossenos de Lambert
+        vec3 lambert_diffuse_term = Kd * I * max(0.0, n_dot_l); 
+
+        // Espectro da luz ambiente
+        vec3 Ia = vec3(0.2, 0.2, 0.2); // PREENCHA AQUI o espectro da luz ambiente
+
+        // Termo ambiente
+        vec3 ambient_term = Ka * Ia; // PREENCHA AQUI o termo ambiente
+
+        // Termo especular utilizando o modelo de iluminação de Phong
+        vec3 phong_specular_term  = Ks * I * pow(max(0.0, r_dot_v), q);
+
+        color.rgb = lambert_diffuse_term + ambient_term + phong_specular_term;
+    }
+
+    
 
     // NOTE: Se você quiser fazer o rendering de objetos transparentes, é
     // necessário:
