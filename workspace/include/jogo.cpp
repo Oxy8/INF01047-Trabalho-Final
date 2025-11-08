@@ -28,6 +28,11 @@
 
 #include <stb_image.h>
 
+// Headers locais, definidos na pasta "include/"
+#include "utils.h"
+#include "matrices.h"
+
+
 struct CubicBézierCurve {
     glm::vec4 p1;
     glm::vec4 p2;
@@ -66,10 +71,10 @@ typedef std::vector<CubicBézierCurve> ClosedCompositeCubicBézierCurve;
 
 
 
-void drawBird(ClosedCompositeCubicBézierCurve curve, float time) {
+ glm::mat4 prepareDrawBird(ClosedCompositeCubicBézierCurve curve, float time) {
     
     int n_segments = curve.size();
-    if (n_segments == 0) return;
+    if (n_segments == 0) { return Matrix_Identity(); };
 
     float remainder = std::fmod(time, n_segments);
     int segment_index = floor(remainder);
@@ -79,12 +84,39 @@ void drawBird(ClosedCompositeCubicBézierCurve curve, float time) {
     glm::vec4 draw_point = selected_segment.point(remainder-(float)segment_index);
 
     glm::vec4 tangent = selected_segment.derivative(remainder-(float)segment_index);
+    tangent = normalize(tangent);
 
     float yaw = atan2(tangent.x,tangent.z);
     float pitch = -asin(tangent.y);
+
+    glm::mat4 model = Matrix_Identity()
+                    * Matrix_Translate(draw_point.x, draw_point.y, draw_point.z)
+                    * Matrix_Rotate_Y(yaw)
+                    * Matrix_Rotate_X(pitch);
+    return model;
 }
 
-void drawBirds() {
-    
 
+// uniform Catmull–Rom
+ClosedCompositeCubicBézierCurve generateClosedBezierCycle(const std::vector<glm::vec4>& points) {
+    int n = points.size();
+    ClosedCompositeCubicBézierCurve curves;
+
+    for (int i = 0; i < n; i++) {
+        int im1 = (i - 1 + n) % n;
+        int ip1 = (i + 1) % n;
+        int ip2 = (i + 2) % n;
+
+        CubicBézierCurve c;
+
+        c.p1 = points[i];
+        c.p2 = points[i] + (points[ip1] - points[im1]) / 6.0f;
+        c.p3 = points[ip1] - (points[ip2] - points[i]) / 6.0f;
+        c.p4 = points[ip1];
+
+        curves.push_back(c);
+    }
+
+    return curves;
 }
+

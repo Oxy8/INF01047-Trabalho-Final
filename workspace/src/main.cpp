@@ -48,6 +48,7 @@
 // Headers locais, definidos na pasta "include/"
 #include "utils.h"
 #include "matrices.h"
+#include "jogo.cpp"
 
 // Estrutura que representa um modelo geométrico carregado a partir de um
 // arquivo ".obj". Veja https://en.wikipedia.org/wiki/Wavefront_.obj_file .
@@ -339,8 +340,6 @@ int main(int argc, char* argv[])
     glFrontFace(GL_CCW);
 
 
-    glfwSwapInterval(0);
-
     // Ficamos em um loop infinito, renderizando, até que o usuário feche a janela
     while (!glfwWindowShouldClose(window))
     {
@@ -388,7 +387,7 @@ int main(int argc, char* argv[])
         // Note que, no sistema de coordenadas da câmera, os planos near e far
         // estão no sentido negativo! Veja slides 176-204 do documento Aula_09_Projecoes.pdf.
         float nearplane = -0.1f;  // Posição do "near plane"
-        float farplane  = -10.0f; // Posição do "far plane"
+        float farplane  = -100.0f; // Posição do "far plane"
 
         if (g_UsePerspectiveProjection)
         {
@@ -447,9 +446,26 @@ int main(int argc, char* argv[])
         DrawVirtualObject("the_plane");
 
 
-        model = Matrix_Translate(0.0f,-3.1f,0.0f);
+        
+        std::vector<glm::vec4> points = {
+            glm::vec4(6.0f + 2.5f * cos(0.0f),        2.0f, 3.5f + 2.5f * sin(0.0f),        1.0f),
+            glm::vec4(6.0f + 2.5f * cos(glm::radians(45.0f)), 2.5f, 3.5f + 2.5f * sin(glm::radians(45.0f)), 1.0f),
+            glm::vec4(6.0f + 2.5f * cos(glm::radians(90.0f)), 3.0f, 3.5f + 2.5f * sin(glm::radians(90.0f)), 1.0f),
+            glm::vec4(6.0f + 2.5f * cos(glm::radians(135.0f)), 3.0f, 3.5f + 2.5f * sin(glm::radians(135.0f)), 1.0f),
+            glm::vec4(6.0f + 2.5f * cos(glm::radians(180.0f)), 2.5f, 3.5f + 2.5f * sin(glm::radians(180.0f)), 1.0f),
+            glm::vec4(6.0f + 2.5f * cos(glm::radians(225.0f)), 2.5f, 3.5f + 2.5f * sin(glm::radians(225.0f)), 1.0f),
+            glm::vec4(6.0f + 2.5f * cos(glm::radians(270.0f)), 2.0f, 3.5f + 2.5f * sin(glm::radians(270.0f)), 1.0f),
+            glm::vec4(6.0f + 2.5f * cos(glm::radians(315.0f)), 2.0f, 3.5f + 2.5f * sin(glm::radians(315.0f)), 1.0f)
+        };
+
+
+        ClosedCompositeCubicBézierCurve path = generateClosedBezierCycle(points);
+
+        
+        model = prepareDrawBird(path, (glfwGetTime()*2.0f));
+        model = model * Matrix_Rotate_Y(M_PI);
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
-        glUniform1i(g_object_id_uniform, BIRD);
+        glUniform1i(g_object_id_uniform, PLANE);
         DrawVirtualObject("achara_bird");
 
 
