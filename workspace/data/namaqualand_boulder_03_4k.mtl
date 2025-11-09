@@ -1,0 +1,13 @@
+# Blender 4.4.3 MTL File: 'namaqualand_boulder_03_4k.blend'
+# www.blender.org
+
+newmtl namaqualand_boulder_03
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.600000
+d 1.000000
+illum 2
+map_Kd /home/estevan/Downloads/namaqualand_boulder_03_4k.blend/textures/namaqualand_boulder_03_diff_4k.jpg
+map_Ns /home/estevan/Downloads/namaqualand_boulder_03_4k.blend/textures/namaqualand_boulder_03_rough_4k.exr
+map_Bump -bm 1.000000 /home/estevan/Downloads/namaqualand_boulder_03_4k.blend/textures/namaqualand_boulder_03_nor_gl_4k.exr

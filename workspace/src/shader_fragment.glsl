@@ -9,7 +9,7 @@ in vec4 normal;
 
 // Posição do vértice atual no sistema de coordenadas local do modelo.
 in vec4 position_model;
-
+ 
 // Coordenadas de textura obtidas do arquivo OBJ (se existirem!)
 in vec2 texcoords;
 
@@ -20,8 +20,8 @@ uniform mat4 projection;
 
 // Identificador que define qual objeto está sendo desenhado no momento
 #define SPHERE 0
-#define BUNNY  1
-#define PLANE  2
+#define BOULDER  1
+#define PLATFORM  2
 #define BIRD  3
 uniform int object_id;
 
@@ -87,19 +87,35 @@ void main()
         // A esfera que define a projeção deve estar centrada na posição
         // "bbox_center" definida abaixo.
 
-        // Você deve utilizar:
-        //   função 'length( )' : comprimento Euclidiano de um vetor
-        //   função 'atan( , )' : arcotangente. Veja https://en.wikipedia.org/wiki/Atan2.
-        //   função 'asin( )'   : seno inverso.
-        //   constante M_PI
-        //   variável position_model
-
         vec4 bbox_center = (bbox_min + bbox_max) / 2.0;
 
-        U = 0.0;
-        V = 0.0;
+        // COMO USEI LENGTH E O PORQUE DE VARIAVEIS OMISSAS:
+        // 
+        // p_linha = bbox_center + (ro * normalize(position_model - bbox_center));
+        // p_vec = p_linha - bbox_center;
+        //
+        // Equivale a:
+        // 
+        // p_vec = ro * normalize(position_model - bbox_center);
+        //
+        // E se temos ro = length(position_model - bbox_center);
+        // então:
+        //        ro * normalize(position_model - bbox_center)
+        //        =
+        //        position_model - bbox_center
+        //
+
+        float ro = length(position_model - bbox_center);
+
+        vec4 p_vec = position_model - bbox_center;
+
+        float theta = atan(p_vec.x, p_vec.z);    // ou x/z ?
+        float phi = asin(p_vec.y/ro);
+
+        U = (theta + M_PI) / (2 * M_PI);
+        V = (phi + M_PI_2) / M_PI;
     }
-    else if ( object_id == BUNNY )
+    else if ( object_id == BOULDER )
     {
         // PREENCHA AQUI as coordenadas de textura do coelho, computadas com
         // projeção planar XY em COORDENADAS DO MODELO. Utilize como referência
@@ -119,14 +135,22 @@ void main()
         float minz = bbox_min.z;
         float maxz = bbox_max.z;
 
-        U = 0.0;
-        V = 0.0;
+        U = (position_model.x - minx) / (maxx - minx);
+        V = (position_model.y - miny) / (maxy - miny);
     }
-    else if ( object_id == PLANE )
+    else if ( object_id == PLATFORM )
     {
-        // Coordenadas de textura do plano, obtidas do arquivo OBJ.
-        U = texcoords.x;
-        V = texcoords.y;
+        Kd = vec3(0.4, 0.9, 0.5);
+        Ks = vec3(0.4, 0.4, 0.4);
+        Ka = Kd/2;
+        q = 8.0;
+    }
+    else if ( object_id == BIRD )
+    {
+        Kd = vec3(0.4, 0.4, 0.8);
+        Ks = vec3(0.8, 0.8, 0.8);
+        Ka = Kd/2;
+        q = 32.0;
     }
     else {
         Kd = vec3(0.08, 0.4, 0.8);
@@ -135,7 +159,7 @@ void main()
         q = 32.0;
     }
 
-    if (object_id < 3) {
+    if (object_id < 2) {
         // Obtemos a refletância difusa a partir da leitura da imagem TextureImage0
         vec3 Kd0 = texture(TextureImage0, vec2(U,V)).rgb;
 

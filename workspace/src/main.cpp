@@ -223,6 +223,14 @@ GLint g_object_id_uniform;
 GLint g_bbox_min_uniform;
 GLint g_bbox_max_uniform;
 
+GLuint g_GpuProgramID_gouraud = 0;
+GLint g_model_uniform_gouraud;
+GLint g_view_uniform_gouraud;
+GLint g_projection_uniform_gouraud;
+GLint g_object_id_uniform_gouraud;
+GLint g_bbox_min_uniform_gouraud;
+GLint g_bbox_max_uniform_gouraud;
+
 // Número de texturas carregadas pela função LoadTextureImage()
 GLuint g_NumLoadedTextures = 0;
 
@@ -304,17 +312,10 @@ int main(int argc, char* argv[])
     LoadTextureImage("../../data/tc-earth_nightmap_citylights.gif"); // TextureImage1
 
     // Construímos a representação de objetos geométricos através de malhas de triângulos
-    ObjModel spheremodel("../../data/sphere.obj");
-    ComputeNormals(&spheremodel);
-    BuildTrianglesAndAddToVirtualScene(&spheremodel);
 
-    ObjModel bunnymodel("../../data/bunny.obj");
-    ComputeNormals(&bunnymodel);
-    BuildTrianglesAndAddToVirtualScene(&bunnymodel);
-
-    ObjModel planemodel("../../data/plane.obj");
-    ComputeNormals(&planemodel);
-    BuildTrianglesAndAddToVirtualScene(&planemodel);
+    ObjModel platformmodel("../../data/platform.obj");
+    ComputeNormals(&platformmodel);
+    BuildTrianglesAndAddToVirtualScene(&platformmodel);
 
     ObjModel birdmodel("../../data/achara_bird2.obj");
     ComputeNormals(&birdmodel);
@@ -360,6 +361,9 @@ int main(int argc, char* argv[])
         // Pedimos para a GPU utilizar o programa de GPU criado acima (contendo
         // os shaders de vértice e fragmentos).
         glUseProgram(g_GpuProgramID);
+
+        // provavelmente será alterado no futuro para que a depender do objeto, diferentes modos de iluminação possam ser utilizados.
+
 
         // Computamos a posição da câmera utilizando coordenadas esféricas.  As
         // variáveis g_CameraDistance, g_CameraPhi, e g_CameraTheta são
@@ -420,54 +424,29 @@ int main(int argc, char* argv[])
 
         #define SPHERE 0
         #define BUNNY  1
-        #define PLANE  2
+        #define PLATFORM 2
         #define BIRD   3
 
-        // Desenhamos o modelo da esfera
-        model = Matrix_Translate(-1.0f,0.0f,0.0f)
-              * Matrix_Rotate_Z(0.6f)
-              * Matrix_Rotate_X(0.2f)
-              * Matrix_Rotate_Y(g_AngleY + (float)glfwGetTime() * 0.1f);
+        // Desenhamos a plataforms
+        model = Matrix_Translate(0.0f,-1.0f,0.0f);
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
-        glUniform1i(g_object_id_uniform, SPHERE);
-        DrawVirtualObject("the_sphere");
-
-        // Desenhamos o modelo do coelho
-        model = Matrix_Translate(1.0f,0.0f,0.0f)
-              * Matrix_Rotate_X(g_AngleX + (float)glfwGetTime() * 0.1f);
-        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
-        glUniform1i(g_object_id_uniform, BUNNY);
-        DrawVirtualObject("the_bunny");
-
-        // Desenhamos o plano do chão
-        model = Matrix_Translate(0.0f,-1.1f,0.0f);
-        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
-        glUniform1i(g_object_id_uniform, PLANE);
-        DrawVirtualObject("the_plane");
+        glUniform1i(g_object_id_uniform, PLATFORM);
+        DrawVirtualObject("platform");
 
 
-        // GPT gerou os pontos.
-        std::vector<glm::vec4> points = {
-            glm::vec4(6.0f + 2.5f * cos(0.0f),                 2.0f, 3.5f + 2.5f * sin(0.0f),        1.0f),
-            glm::vec4(6.0f + 2.5f * cos(glm::radians(45.0f)),  2.5f, 3.5f + 2.5f * sin(glm::radians(45.0f)), 1.0f),
-            glm::vec4(6.0f + 2.5f * cos(glm::radians(90.0f)),  2.8f, 3.5f + 2.5f * sin(glm::radians(90.0f)), 1.0f),
-            glm::vec4(6.0f + 2.5f * cos(glm::radians(135.0f)), 3.0f, 3.5f + 2.5f * sin(glm::radians(135.0f)), 1.0f),
-            glm::vec4(6.0f + 2.5f * cos(glm::radians(180.0f)), 2.7f, 3.5f + 2.5f * sin(glm::radians(180.0f)), 1.0f),
-            glm::vec4(6.0f + 2.5f * cos(glm::radians(225.0f)), 2.4f, 3.5f + 2.5f * sin(glm::radians(225.0f)), 1.0f),
-            glm::vec4(6.0f + 2.5f * cos(glm::radians(270.0f)), 2.0f, 3.5f + 2.5f * sin(glm::radians(270.0f)), 1.0f),
-            glm::vec4(6.0f + 2.5f * cos(glm::radians(315.0f)), 1.9f, 3.5f + 2.5f * sin(glm::radians(315.0f)), 1.0f)
-        };
 
+        for (int i = 0; i< n_passaros; i++) {
 
-        ClosedCompositeCubicBézierCurve path = generateClosedBezierCycle(points);
-
+            std::vector<glm::vec4> passaro = passaros[i];
         
-        model = prepareDrawBird(path, (glfwGetTime()*2.0f));
-        model = model * Matrix_Rotate_Y(M_PI);
-        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
-        glUniform1i(g_object_id_uniform, BIRD);
-        DrawVirtualObject("achara_bird");
-
+            ClosedCompositeCubicBézierCurve path = generateClosedBezierCycle(passaro);
+            
+            model = prepareDrawBird(path, (glfwGetTime()*2.0f));
+            model = model * Matrix_Rotate_Y(M_PI);
+            glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+            glUniform1i(g_object_id_uniform, BIRD);
+            DrawVirtualObject("achara_bird");
+        }
 
         // Imprimimos na tela os ângulos de Euler que controlam a rotação do
         // terceiro cubo.
@@ -613,9 +592,37 @@ void LoadShadersFromFiles()
     GLuint vertex_shader_id = LoadShader_Vertex("../../src/shader_vertex.glsl");
     GLuint fragment_shader_id = LoadShader_Fragment("../../src/shader_fragment.glsl");
 
+    GLuint vertex_shader_gouraud_id = LoadShader_Vertex("../../src/shader_vertex_gouraud.glsl");
+    GLuint fragment_shader_gouraud_id = LoadShader_Fragment("../../src/shader_fragment_gouraud.glsl");
+
     // Deletamos o programa de GPU anterior, caso ele exista.
     if ( g_GpuProgramID != 0 )
         glDeleteProgram(g_GpuProgramID);
+    if ( g_GpuProgramID_gouraud != 0 )
+        glDeleteProgram(g_GpuProgramID);
+
+    // Gouraud
+    // ###############################
+
+    // Criamos um programa de GPU utilizando os shaders carregados acima.
+    g_GpuProgramID_gouraud = CreateGpuProgram(vertex_shader_gouraud_id, fragment_shader_gouraud_id);
+
+    // Buscamos o endereço das variáveis definidas dentro do Vertex Shader.
+    // Utilizaremos estas variáveis para enviar dados para a placa de vídeo
+    // (GPU)! Veja arquivo "shader_vertex.glsl" e "shader_fragment.glsl".
+    g_model_uniform_gouraud      = glGetUniformLocation(g_GpuProgramID_gouraud, "model"); // Variável da matriz "model"
+    g_view_uniform_gouraud       = glGetUniformLocation(g_GpuProgramID_gouraud, "view"); // Variável da matriz "view" em shader_vertex.glsl
+    g_projection_uniform_gouraud = glGetUniformLocation(g_GpuProgramID_gouraud, "projection"); // Variável da matriz "projection" em shader_vertex.glsl
+    g_object_id_uniform_gouraud  = glGetUniformLocation(g_GpuProgramID_gouraud, "object_id"); // Variável "object_id" em shader_fragment.glsl
+    g_bbox_min_uniform_gouraud   = glGetUniformLocation(g_GpuProgramID_gouraud, "bbox_min");
+    g_bbox_max_uniform_gouraud   = glGetUniformLocation(g_GpuProgramID_gouraud, "bbox_max");
+
+    // Variáveis em "shader_fragment.glsl" para acesso das imagens de textura
+    glUseProgram(g_GpuProgramID);
+
+    
+    // Phong
+    // ###############################
 
     // Criamos um programa de GPU utilizando os shaders carregados acima.
     g_GpuProgramID = CreateGpuProgram(vertex_shader_id, fragment_shader_id);

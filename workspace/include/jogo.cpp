@@ -32,6 +32,30 @@
 #include "utils.h"
 #include "matrices.h"
 
+extern std::vector<std::vector<glm::vec4>> passaros = {
+    {
+    glm::vec4(6.0f + 2.5f * cos(0.0f),                 2.0f, 3.5f + 2.5f * sin(0.0f),        1.0f),
+    glm::vec4(6.0f + 2.5f * cos(glm::radians(45.0f)),  2.5f, 3.5f + 2.5f * sin(glm::radians(45.0f)), 1.0f),
+    glm::vec4(6.0f + 2.5f * cos(glm::radians(90.0f)),  2.8f, 3.5f + 2.5f * sin(glm::radians(90.0f)), 1.0f),
+    glm::vec4(6.0f + 2.5f * cos(glm::radians(135.0f)), 3.0f, 3.5f + 2.5f * sin(glm::radians(135.0f)), 1.0f),
+    glm::vec4(6.0f + 2.5f * cos(glm::radians(180.0f)), 2.7f, 3.5f + 2.5f * sin(glm::radians(180.0f)), 1.0f),
+    glm::vec4(6.0f + 2.5f * cos(glm::radians(225.0f)), 2.4f, 3.5f + 2.5f * sin(glm::radians(225.0f)), 1.0f),
+    glm::vec4(6.0f + 2.5f * cos(glm::radians(270.0f)), 2.0f, 3.5f + 2.5f * sin(glm::radians(270.0f)), 1.0f),
+    glm::vec4(6.0f + 2.5f * cos(glm::radians(315.0f)), 1.9f, 3.5f + 2.5f * sin(glm::radians(315.0f)), 1.0f)
+    },
+    {
+    glm::vec4(-3.6f, 2.5f, -6.0f, 1.0f),
+    glm::vec4(0.0f, 2.5f, -7.0f, 1.0f),
+    glm::vec4(3.6f, 2.5f, -6.0f, 1.0f),
+    glm::vec4(4.2f, 2.5f, 0.0f, 1.0f),
+    glm::vec4(3.6f, 2.5f, 6.0f, 1.0f),
+    glm::vec4(0.0f, 2.5f, 7.0f, 1.0f),
+    glm::vec4(-3.6f, 2.5f, 6.0f, 1.0f),
+    glm::vec4(-4.2f, 2.5f, 0.0f, 1.0f),
+    }
+};
+extern int n_passaros = passaros.size();
+
 
 struct CubicBézierCurve {
     glm::vec4 p1;
@@ -95,7 +119,7 @@ glm::mat4 prepareDrawBird(ClosedCompositeCubicBézierCurve curve, float time) {
 }
 
 
-// uniform Catmull–Rom
+// uniform Catmull–Rom modified
 ClosedCompositeCubicBézierCurve generateClosedBezierCycle(const std::vector<glm::vec4>& points) {
     
     int n = points.size();
@@ -110,8 +134,8 @@ ClosedCompositeCubicBézierCurve generateClosedBezierCycle(const std::vector<glm
         CubicBézierCurve c;
 
         c.p1 = points[i];
-        c.p2 = points[i] + (points[next] - points[prev]) / 6.0f;
-        c.p3 = points[next] - (points[next_next] - points[i]) / 6.0f;
+        c.p2 = points[i] + (points[next] - points[prev]) / 4.0f;
+        c.p3 = points[next] - (points[next_next] - points[i]) / 4.0f;
         c.p4 = points[next];
 
         curves.push_back(c);
