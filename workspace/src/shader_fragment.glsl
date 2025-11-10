@@ -23,6 +23,8 @@ uniform mat4 projection;
 #define BOULDER  1
 #define PLATFORM  2
 #define BIRD  3
+#define CHARACTER 4
+
 uniform int object_id;
 
 // Parâmetros da axis-aligned bounding box (AABB) do modelo
@@ -146,6 +148,14 @@ void main()
         q = 8.0;
     }
     else if ( object_id == BIRD )
+    {
+        Kd = vec3(0.4, 0.4, 0.8);
+        Ks = vec3(0.8, 0.8, 0.8);
+        Ka = Kd/2;
+        q = 32.0;
+    }
+
+    else if ( object_id == CHARACTER)
     {
         Kd = vec3(0.4, 0.4, 0.8);
         Ks = vec3(0.8, 0.8, 0.8);
