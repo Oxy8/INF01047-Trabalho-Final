@@ -330,9 +330,15 @@ int main(int argc, char* argv[])
     LoadShadersFromFiles();
 
     // Carregamos duas imagens para serem utilizadas como textura
-    LoadTextureImage("../../data/tc-earth_daymap_surface.jpg");      // TextureImage0
-    LoadTextureImage("../../data/tc-earth_nightmap_citylights.gif"); // TextureImage1
-
+    LoadTextureImage("../../data/Mario/textures/texture_character_hat.png"); // TextureImage0
+    LoadTextureImage("../../data/Mario/textures/texture_character_pants.png"); // TextureImage1
+    LoadTextureImage("../../data/Mario/textures/texture_character_face.png"); // TextureImage2
+    LoadTextureImage("../../data/Mario/textures/texture_character_eye.png"); // TextureImage3
+    LoadTextureImage("../../data/Mario/textures/texture_character_gloves.png"); // TextureImage4
+    LoadTextureImage("../../data/Mario/textures/texture_character_clothes.png"); // TextureImage5
+    LoadTextureImage("../../data/Mario/textures/texture_character_shoes.png"); // TextureImage6
+    LoadTextureImage("../../data/Mario/textures/texture_character_hair.png"); // TextureImage7
+    
     // Construímos a representação de objetos geométricos através de malhas de triângulos
 
     ObjModel platformmodel("../../data/platform.obj");
@@ -514,7 +520,6 @@ int main(int argc, char* argv[])
             }
         }
 
-        printf("Character position before: (%.2f, %.2f, %.2f)\n", character_position_c.x, character_position_c.y, character_position_c.z);
         character_position_c += delta_position;
         camera_position_c = character_position_c + glm::vec4(x, y+2.6f, z, 0.0f);
 
@@ -561,6 +566,14 @@ int main(int argc, char* argv[])
         #define PLATFORM 2
         #define BIRD   3
         #define CHARACTER 4
+        #define MARIO_HAT 5
+        #define MARIO_PANTS 6
+        #define MARIO_FACE 7
+        #define MARIO_EYE 8
+        #define MARIO_GLOVES 9
+        #define MARIO_CLOTHES 10
+        #define MARIO_SHOES 11
+        #define MARIO_HAIR 12
 
         // Desenhamos a plataforms
         model = Matrix_Translate(0.0f,-1.0f,0.0f);
@@ -575,15 +588,49 @@ int main(int argc, char* argv[])
         model = model * Matrix_Rotate_Y(g_CameraTheta);
 
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
-        glUniform1i(g_object_id_uniform, CHARACTER);
-        DrawVirtualObject("submesh_0");
-        DrawVirtualObject("submesh_1");
-        DrawVirtualObject("submesh_2");
-        DrawVirtualObject("submesh_3");
+        glUniform1i(g_object_id_uniform, MARIO_PANTS);
+        //DrawVirtualObject("submesh_1");
+        //DrawVirtualObject("submesh_2");
+        //DrawVirtualObject("submesh_3");
         DrawVirtualObject("submesh_4");
-        DrawVirtualObject("submesh_5");
-        DrawVirtualObject("submesh_6");
+        //DrawVirtualObject("submesh_5");
+        //DrawVirtualObject("submesh_6");
+        //DrawVirtualObject("submesh_7");
+
+        
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform, MARIO_FACE);
         DrawVirtualObject("submesh_7");
+
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform, MARIO_HAT);
+        DrawVirtualObject("submesh_0");
+
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform, MARIO_EYE);
+        DrawVirtualObject("submesh_3");
+
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform, MARIO_GLOVES);
+        DrawVirtualObject("submesh_2");
+
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform, MARIO_CLOTHES);
+        DrawVirtualObject("submesh_5");
+
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform, MARIO_SHOES);
+        DrawVirtualObject("submesh_6");
+
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform, MARIO_HAIR);
+        DrawVirtualObject("submesh_1");
+
+        
+        // DrawVirtualObject("submesh_5"); ROUPA
+        
+        //DrawVirtualObject("submesh_6"); SAPATO
+
 
 
         // Desenhamos os pássaros voando em curvas de Bézier
@@ -663,8 +710,8 @@ void LoadTextureImage(const char* filename)
     glGenSamplers(1, &sampler_id);
 
     // Veja slides 95-96 do documento Aula_20_Mapeamento_de_Texturas.pdf
-    glSamplerParameteri(sampler_id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glSamplerParameteri(sampler_id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glSamplerParameteri(sampler_id, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glSamplerParameteri(sampler_id, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
     // Parâmetros de amostragem da textura.
     glSamplerParameteri(sampler_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -747,8 +794,8 @@ void LoadShadersFromFiles()
     GLuint vertex_shader_id = LoadShader_Vertex("../../src/shader_vertex.glsl");
     GLuint fragment_shader_id = LoadShader_Fragment("../../src/shader_fragment.glsl");
 
-    GLuint vertex_shader_gouraud_id = LoadShader_Vertex("../../src/shader_vertex_gouraud.glsl");
-    GLuint fragment_shader_gouraud_id = LoadShader_Fragment("../../src/shader_fragment_gouraud.glsl");
+    //GLuint vertex_shader_gouraud_id = LoadShader_Vertex("../../src/shader_vertex_gouraud.glsl");
+    //GLuint fragment_shader_gouraud_id = LoadShader_Fragment("../../src/shader_fragment_gouraud.glsl");
 
     // Deletamos o programa de GPU anterior, caso ele exista.
     if ( g_GpuProgramID != 0 )
@@ -760,7 +807,7 @@ void LoadShadersFromFiles()
     // ###############################
 
     // Criamos um programa de GPU utilizando os shaders carregados acima.
-    g_GpuProgramID_gouraud = CreateGpuProgram(vertex_shader_gouraud_id, fragment_shader_gouraud_id);
+    //g_GpuProgramID_gouraud = CreateGpuProgram(vertex_shader_gouraud_id, fragment_shader_gouraud_id);
 
     // Buscamos o endereço das variáveis definidas dentro do Vertex Shader.
     // Utilizaremos estas variáveis para enviar dados para a placa de vídeo
@@ -797,6 +844,11 @@ void LoadShadersFromFiles()
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage0"), 0);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage1"), 1);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage2"), 2);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage3"), 3);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage4"), 4);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage5"), 5);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage6"), 6);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage7"), 7);
     glUseProgram(0);
 }
 
@@ -1060,12 +1112,13 @@ void BuildTrianglesAndAddToVirtualScene(ObjModel* model)
 
     if ( !texture_coefficients.empty() )
     {
+
         GLuint VBO_texture_coefficients_id;
         glGenBuffers(1, &VBO_texture_coefficients_id);
         glBindBuffer(GL_ARRAY_BUFFER, VBO_texture_coefficients_id);
         glBufferData(GL_ARRAY_BUFFER, texture_coefficients.size() * sizeof(float), NULL, GL_STATIC_DRAW);
         glBufferSubData(GL_ARRAY_BUFFER, 0, texture_coefficients.size() * sizeof(float), texture_coefficients.data());
-        location = 2; // "(location = 1)" em "shader_vertex.glsl"
+        location = 2; // "(location = 2)" em "shader_vertex.glsl"
         number_of_dimensions = 2; // vec2 em "shader_vertex.glsl"
         glVertexAttribPointer(location, number_of_dimensions, GL_FLOAT, GL_FALSE, 0, 0);
         glEnableVertexAttribArray(location);

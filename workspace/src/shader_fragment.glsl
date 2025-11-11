@@ -24,6 +24,14 @@ uniform mat4 projection;
 #define PLATFORM  2
 #define BIRD  3
 #define CHARACTER 4
+#define MARIO_HAT 5
+#define MARIO_PANTS 6
+#define MARIO_FACE 7
+#define MARIO_EYE 8
+#define MARIO_GLOVE 9
+#define MARIO_CLOTHES 10
+#define MARIO_SHOES 11
+#define MARIO_HAIR 12
 
 uniform int object_id;
 
@@ -32,9 +40,36 @@ uniform vec4 bbox_min;
 uniform vec4 bbox_max;
 
 // Variáveis para acesso das imagens de textura
+
+// Mario Hat Texture
 uniform sampler2D TextureImage0;
+
+// Mario Pants Texture
 uniform sampler2D TextureImage1;
+
+// Mario Face Texture
 uniform sampler2D TextureImage2;
+
+// Mario Eye
+uniform sampler2D TextureImage3;
+
+// Mario Gloves
+uniform sampler2D TextureImage4;
+
+// Mario Clothes
+uniform sampler2D TextureImage5;
+
+// Mario Shoes
+uniform sampler2D TextureImage6;
+
+// Mario Hair
+uniform sampler2D TextureImage7;
+
+
+
+
+
+
 
 // O valor de saída ("out") de um Fragment Shader é a cor final do fragmento.
 out vec4 color;
@@ -169,7 +204,76 @@ void main()
         q = 32.0;
     }
 
-    if (object_id < 2) {
+
+    if(object_id == MARIO_HAT){
+        vec3 Kd_mario = texture(TextureImage0, texcoords).rgb;
+        // Equação de Iluminação
+        float lambert = max(0, n_dot_l);
+
+        color.rgb = Kd_mario * (lambert + 0.01);
+    }
+
+    else if(object_id == MARIO_PANTS){
+        vec3 Kd_mario = texture(TextureImage1, texcoords).rgb;
+        // Equação de Iluminação
+        float lambert = max(0, n_dot_l);
+
+        color.rgb = Kd_mario * (lambert + 0.01);
+    }
+
+    else if(object_id == MARIO_FACE){
+        vec3 Kd_mario = texture(TextureImage2, texcoords).rgb;
+        // Equação de Iluminação
+        float lambert = max(0, n_dot_l);
+
+        color.rgb = Kd_mario * (lambert + 0.01);
+    }
+    
+    else if(object_id == MARIO_EYE){
+        vec3 Kd_mario = texture(TextureImage3, texcoords).rgb;
+        // Equação de Iluminação
+        float lambert = max(0, n_dot_l);
+
+        color.rgb = Kd_mario * (lambert + 0.01);
+    }
+
+    else if(object_id == MARIO_GLOVE){
+        vec3 Kd_mario = texture(TextureImage4, texcoords).rgb;
+        // Equação de Iluminação
+        float lambert = max(0, n_dot_l);
+
+        color.rgb = Kd_mario * (lambert + 0.01);
+    }
+
+    else if(object_id == MARIO_CLOTHES){
+        vec3 Kd_mario = texture(TextureImage5, texcoords).rgb;
+        // Equação de Iluminação
+        float lambert = max(0, n_dot_l);
+
+        color.rgb = Kd_mario * (lambert + 0.01);
+    }
+
+    else if(object_id == MARIO_SHOES){
+        vec3 Kd_mario = texture(TextureImage6, texcoords).rgb;
+        // Equação de Iluminação
+        float lambert = max(0, n_dot_l);
+
+        color.rgb = Kd_mario * (lambert + 0.01);
+    }
+
+    else if(object_id == MARIO_HAIR){
+        vec3 Kd_mario = texture(TextureImage7, texcoords).rgb;
+        // Equação de Iluminação
+        float lambert = max(0, n_dot_l);
+
+        color.rgb = Kd_mario * (lambert + 0.01);
+    }
+
+
+
+
+
+    else if (object_id < 2) {
         // Obtemos a refletância difusa a partir da leitura da imagem TextureImage0
         vec3 Kd0 = texture(TextureImage0, vec2(U,V)).rgb;
 
@@ -192,6 +296,7 @@ void main()
 
         // Termo especular utilizando o modelo de iluminação de Phong
         vec3 phong_specular_term  = Ks * I * pow(max(0.0, r_dot_v), q);
+
 
         color.rgb = lambert_diffuse_term + ambient_term + phong_specular_term;
     }
