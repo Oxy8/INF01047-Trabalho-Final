@@ -174,6 +174,18 @@ typedef enum { LOOK_AT_CAMERA_OFF,
                LOOK_AT_CAMERA_MODE_FRONT,
                LOOK_AT_CAMERA_MODE_BACK } LookAtCameraMode;
 
+
+
+typedef enum {
+    HAT, 
+    HAIR,
+    GLOVES,
+    FACE,
+    PANTS,
+    CLOTHES,
+    BOOTS
+} CharacterSubmesh;
+
 // Abaixo definimos variáveis globais utilizadas em várias funções do código.
 
 // A cena virtual é uma lista de objetos nomeados, guardados em um dicionário
@@ -395,6 +407,10 @@ int main(int argc, char* argv[])
     ComputeNormals(&platformmodel);
     BuildTrianglesAndAddToVirtualScene(&platformmodel);
 
+    // Estamos definindo a bounding box da plataforma manualmente com base na translação aplicada no modelo, já que essa atualização não ocorre de forma automática
+    g_VirtualScene["platform"].bbox_min.y = -2.0f;
+    g_VirtualScene["platform"].bbox_max.y = 0.0f;
+
     ObjModel birdmodel("../../data/achara_bird2.obj");
     ComputeNormals(&birdmodel);
     BuildTrianglesAndAddToVirtualScene(&birdmodel);
@@ -408,9 +424,35 @@ int main(int argc, char* argv[])
     BuildTrianglesAndAddToVirtualScene(&skyboxmodel);
 
 
-    OBB character_boots_obb = createOBBFromAABB(g_VirtualScene["submesh_6"].bbox_min, g_VirtualScene["submesh_6"].bbox_max);
-    glm::vec3 center_initial_position_local_coords = character_boots_obb.center;
-    glm::vec3 initial_half_sizes = character_boots_obb.half_sizes;
+    std::vector<OBB> character_obbs = {
+        createOBBFromAABB(g_VirtualScene["submesh_0"].bbox_min, g_VirtualScene["submesh_0"].bbox_max), // hat
+        createOBBFromAABB(g_VirtualScene["submesh_1"].bbox_min, g_VirtualScene["submesh_1"].bbox_max), // hair
+        createOBBFromAABB(g_VirtualScene["submesh_2"].bbox_min, g_VirtualScene["submesh_2"].bbox_max), // gloves
+        createOBBFromAABB(g_VirtualScene["submesh_3"].bbox_min, g_VirtualScene["submesh_3"].bbox_max), // face
+        createOBBFromAABB(g_VirtualScene["submesh_4"].bbox_min, g_VirtualScene["submesh_4"].bbox_max), // pants
+        createOBBFromAABB(g_VirtualScene["submesh_5"].bbox_min, g_VirtualScene["submesh_5"].bbox_max),  // clothes
+        createOBBFromAABB(g_VirtualScene["submesh_6"].bbox_min, g_VirtualScene["submesh_6"].bbox_max) // boots
+    };
+
+    std::vector<glm::vec3> character_obbs_initial_centers = {
+        character_obbs[HAT].center,
+        character_obbs[HAIR].center,
+        character_obbs[GLOVES].center,
+        character_obbs[FACE].center,
+        character_obbs[PANTS].center,
+        character_obbs[CLOTHES].center,
+        character_obbs[BOOTS].center
+    };
+
+    std::vector<glm::vec3> character_bbs_initial_half_sizes = {
+        character_obbs[HAT].half_sizes,
+        character_obbs[HAIR].half_sizes,
+        character_obbs[GLOVES].half_sizes,
+        character_obbs[FACE].half_sizes,
+        character_obbs[PANTS].half_sizes,
+        character_obbs[CLOTHES].half_sizes,
+        character_obbs[BOOTS].half_sizes,
+    };
 
     if ( argc > 1 )
     {
@@ -530,14 +572,22 @@ int main(int argc, char* argv[])
        else
             character_velocity.y = 0.0f;
 
-       g_VirtualScene["platform"].bbox_min.y = -2.0f;
-       g_VirtualScene["platform"].bbox_max.y = 0.0f;
 
+
+    printf("Character velocity Y: %f\n", character_velocity.y);
     character_position_c += character_velocity * delta_time;
 
-    // Resolve colisão do personagem com a plataforma
-    resolve_collision_obb_aabb(character_position_c, character_velocity, grounded, character_boots_obb, g_VirtualScene["platform"].bbox_min, g_VirtualScene["platform"].bbox_max );
-    
+    printf("Character position Y before collision: %f\n", character_position_c.y);
+
+  
+
+   for(int i = 0; i < character_obbs.size(); i++){
+        // Atualiza OBBs do personagem de acordo com a posição atual
+        resolve_collision_obb_aabb(character_position_c, character_velocity, grounded, (i == BOOTS), character_obbs[i], g_VirtualScene["platform"].bbox_min, g_VirtualScene["platform"].bbox_max );
+    }
+
+    printf("Character position Y after collision: %f\n", character_position_c.y);
+    printf("Grounded: %d\n", grounded);
     // Se acrescentarmos mais plataformas, podemos muito bem simplesmente chamar mais de uma vez a função acima e parar de checar pelas plataformas se o personagem já estiver "grounded" após uma detecção
     // Para objetos no entanto, teremos que aplicar a verificação em todos
 
@@ -599,6 +649,8 @@ int main(int argc, char* argv[])
         last_t_state = current_t_state;
 
         if(look_at_camera_mode == LOOK_AT_CAMERA_MODE_BACK){
+            if(g_CameraPhi < -3.141592f/2 + 0.25f)
+                g_CameraPhi = -3.141592f/2 + 0.25f;
             r = - g_CameraDistance - look_at_camera_mode_initial_distance;
             y = - r*sin(g_CameraPhi);
             z = r*cos(g_CameraPhi)*cos(g_CameraTheta);
@@ -609,6 +661,8 @@ int main(int argc, char* argv[])
         }
 
         else if(look_at_camera_mode == LOOK_AT_CAMERA_MODE_FRONT){
+            if(g_CameraPhi > 3.141592f/2 - 0.25f)
+                g_CameraPhi = 3.141592f/2 - 0.25f;
             r = g_CameraDistance + look_at_camera_mode_initial_distance;
             y = - r*sin(g_CameraPhi);
             z = r*cos(g_CameraPhi)*cos(g_CameraTheta);
@@ -618,6 +672,8 @@ int main(int argc, char* argv[])
         }
 
         else{
+            if(g_CameraPhi > 3.141592f/2 - 0.25f)
+                g_CameraPhi = 3.141592f/2 - 0.25f;
             g_CameraDistance = 1.4f;
             r = g_CameraDistance;
             y = - r*sin(g_CameraPhi);
@@ -637,22 +693,7 @@ int main(int argc, char* argv[])
         OBB obb = createOBBFromAABB(g_VirtualScene["platform"].bbox_min,
                                     g_VirtualScene["platform"].bbox_max);
 
-        float hit = intersectRayOBB(look, dir, obb.center, obb.orientation, obb.half_sizes);
-        
-
-        if (hit > 0.0f && hit < desiredDist) {
-            float margin = 0.05f;
-            desiredDist = hit - margin;
-
-            if (desiredDist < 0.01f)
-                desiredDist = 0.01f;
-        }
-
-        // posição final da câmera
-        glm::vec3 newPos = look + dir * desiredDist;
-
-        camera_position_c = glm::vec4(newPos, 1.0f);
-        
+        camera_position_c = glm::vec4(resolve_collision_ray_obb(look, dir, desiredDist, obb, 0.05f), 1.0f);
 
         // Abaixo definimos as varáveis que efetivamente definem a câmera virtual.
         // Veja slides 195-227 e 229-234 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
@@ -773,7 +814,11 @@ glUseProgram(g_GpuProgramID); // Use o programa de shader dedicado.
             * Matrix_Rotate_Y(g_CameraTheta)
             * Matrix_Scale(0.5f, 0.5f, 0.5f);
 
-        updateOBB(character_boots_obb, model, center_initial_position_local_coords, initial_half_sizes);
+        for(int i = 0; i < character_obbs.size(); i++){
+            glm::vec3 initial_half_sizes = character_bbs_initial_half_sizes[i];
+            updateOBB(character_obbs[i], model, character_obbs_initial_centers[i], character_bbs_initial_half_sizes[i]);
+        }
+
 
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, MARIO_PANTS);
@@ -809,15 +854,11 @@ glUseProgram(g_GpuProgramID); // Use o programa de shader dedicado.
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, MARIO_SHOES);
         DrawVirtualObject("submesh_6");
+        
 
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, MARIO_HAIR);
         DrawVirtualObject("submesh_1");
-
-        
-        // DrawVirtualObject("submesh_5"); ROUPA
-        
-        //DrawVirtualObject("submesh_6"); SAPATO
 
 
         // Desenhamos os pássaros voando em curvas de Bézier
@@ -1613,16 +1654,38 @@ void CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
         g_CameraTheta -= sensitivity*dx;
         g_CameraPhi   += sensitivity*dy;
     
+        // Se a câmera estiver em primeira pessoa, o ângulo phi varia entre -pi/2 + 0.1 e +pi/2
+       // if(look_at_camera_mode == 0){
+       //     float phimax = 3.141592f/2 - 0.1f;
+       //     float phimin = -phimax;
+       // }
+       // else{}
+
+       float phimax, phimin;
+       if(look_at_camera_mode == 0){
+            phimax = 3.141592f/2 - 0.25f;
+            phimin = -3.141592f/2;
+         }
+        else if(look_at_camera_mode == 1){
+                phimax = 3.141592f/2 - 0.25f;
+                phimin = -3.141592f/2;
+            }
+
+        else{
+                phimax = 3.141592f/2;
+                phimin = -3.141592f/2 + 0.25f;
+            }
+
         // Em coordenadas esféricas, o ângulo phi deve ficar entre -pi/2 e +pi/2.
-        float phimax = 3.141592f/2;
-        float phimin = -phimax;
+
     
         if (g_CameraPhi > phimax)
             g_CameraPhi = phimax;
     
         if (g_CameraPhi < phimin)
             g_CameraPhi = phimin;
-    
+
+
         // Atualizamos as variáveis globais para armazenar a posição atual do
         // cursor como sendo a última posição conhecida do cursor.
         g_LastCursorPosX = xpos;

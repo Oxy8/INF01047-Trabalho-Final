@@ -228,6 +228,7 @@ void resolve_collision_obb_aabb(
     glm::vec4& character_pos,
     glm::vec4& character_vel,
     bool& grounded_flag,
+    bool update_grounded_flag,
     const OBB& character_obb,
     const glm::vec3& platform_min,
     const glm::vec3& platform_max
@@ -237,7 +238,8 @@ void resolve_collision_obb_aabb(
     CollisionResult colision = colision_obb_aabb(character_obb, platform_min, platform_max);
 
     if (colision.colliding) {
-        
+        float lasy_y_pos = character_pos.y;
+        printf("Colisao detectada!\n");
         // Corrige posição (Com Slop)
         float correction_amount = colision.penetration;
 
@@ -256,17 +258,24 @@ void resolve_collision_obb_aabb(
         }
         
         // Atualiza o estado: Verificar se a colisão é um chão (normal vertical)
-        if(colision.normal.y > 0.7f) { // Limiar de 0.7f (aprox. 45 graus)
+        if(update_grounded_flag && colision.normal.y > 0.7f) { // Limiar de 0.7f (aprox. 45 graus)
              // Estabilização vertical: Zera a velocidade y no contato para evitar oscilação
              character_vel.y = 0.0f;
-             grounded_flag = true;
+            
+            // Se o personagem já estava acima da plataforma antes da colisão e ele continua agora, preservamos a posição y dele
+            if(grounded_flag)
+                character_pos.y = lasy_y_pos;
+
+            grounded_flag = true;
         }
 
     }
     
     else {
         // Se não houver colisão, o objeto não está no chão
-        grounded_flag = false;
+        if(update_grounded_flag)
+            grounded_flag = false;
+        
     }
 }
 
@@ -422,11 +431,7 @@ void resolve_collision_sphere_obb(
        // printf("Correction amount: %.6f\n", correction_amount);
         if(correction_amount > 0.0f) {
             glm::vec4 normal_vec = glm::vec4(collision.normal, 0.0f);
-            printf("Normal vec: %.2f %.2f %.2f\n", normal_vec.x, normal_vec.y, normal_vec.z);
-            printf("Contact point: %.2f %.2f %.2f\n", collision.contact_point.x, collision.contact_point.y, collision.contact_point.z);
-            printf("Penetração da câmera: %f\n", correction_amount);
-
-            
+        
             sphere_center = glm::vec4(collision.contact_point, 1.0f) + glm::vec4(collision.normal, 0.0f) * (sphere_radius + 0.1f);
         }
 
@@ -531,6 +536,28 @@ float intersectRayOBB(
 }
 
 
+glm::vec3 resolve_collision_ray_obb(
+    const glm::vec3& ray_origin,   // geralmente o look_at
+    const glm::vec3& ray_dir,      // direção normalizada para a câmera
+    float desiredDist,             // distância desejada antes da correção
+    const OBB& obb,                // caixa que queremos testar
+    float margin = 0.05f           // espaço mínimo
+) {
+    float hit = intersectRayOBB(ray_origin, ray_dir,
+                                obb.center, obb.orientation, obb.half_sizes);
+
+    // Se bate e o ponto está mais próximo que o destino desejado
+    if (hit > 0.0f && hit < desiredDist) {
+        desiredDist = hit - margin;
+
+        if (desiredDist < 0.01f)
+            desiredDist = 0.01f;
+    }
+
+    // Retorna a posição ajustada ao longo do raio
+    return ray_origin + ray_dir * desiredDist;
+}
+
 bool colision_with_void(float min_y){
-    return min_y <= -30.0f;
+    return min_y <= -60.0f;
 }
