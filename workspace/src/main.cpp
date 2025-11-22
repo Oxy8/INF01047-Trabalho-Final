@@ -168,6 +168,24 @@ struct SceneObject
     glm::vec3    bbox_max;
 };
 
+
+
+typedef enum { LOOK_AT_CAMERA_OFF,
+               LOOK_AT_CAMERA_MODE_FRONT,
+               LOOK_AT_CAMERA_MODE_BACK } LookAtCameraMode;
+
+
+
+typedef enum {
+    HAT, 
+    HAIR,
+    GLOVES,
+    FACE,
+    PANTS,
+    CLOTHES,
+    BOOTS
+} CharacterSubmesh;
+
 // Abaixo definimos variáveis globais utilizadas em várias funções do código.
 
 // A cena virtual é uma lista de objetos nomeados, guardados em um dicionário
@@ -197,7 +215,7 @@ bool g_MiddleMouseButtonPressed = false; // Análogo para botão do meio do mous
 // usuário através do mouse (veja função CursorPosCallback()). A posição
 // efetiva da câmera é calculada dentro da função main(), dentro do loop de
 // renderização.
-float g_CameraTheta = 3.14f; // Ângulo no plano ZX em relação ao eixo Z
+float g_CameraTheta = 0.0f; // Ângulo no plano ZX em relação ao eixo Z
 float g_CameraPhi = 0.0f;   // Ângulo em relação ao eixo Y
 float g_CameraDistance = 1.1f; // Distância da câmera para a origem
 
@@ -205,16 +223,26 @@ float g_CameraDistance = 1.1f; // Distância da câmera para a origem
 bool firstMouse = true;
 
 // Controla o pulo do personagem
-bool is_jumping = false;
-glm::vec4 jump_velocity(0.0f);
-glm::vec4 gravity(0.0f, -9.8f, 0.0f, 0.0f);
+bool is_falling = false;
+bool grounded = true;
+float gravity = -9.8f;
+glm::vec4 character_velocity = glm::vec4(0.0f);
 
 
 glm::vec4 camera_position_c  = glm::vec4(0.0,2.6,1.1f,1.0f);
+glm::vec4 camera_up_vector   = glm::vec4(0.0f,1.0f,0.0f,0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
 
+float r = g_CameraDistance;
+float y = - r*sin(g_CameraPhi);
+float z = r*cos(g_CameraPhi)*cos(g_CameraTheta);
+float x = r*cos(g_CameraPhi)*sin(g_CameraTheta);
+
+glm::vec4 camera_view_vector = glm::vec4(x,y,z,0.0f);
 
 // Posição do personagem na cena (atualizada junto da câmera na visão em primeira pessoa)
-glm::vec4 character_position_c  = glm::vec4(0.0,0.0,0.0,1.0f);
+glm::vec4 character_position_c  = glm::vec4(0.0,0.0f,0.0,1.0f);
+
+glm::mat4 view = Matrix_Camera_View(camera_position_c, camera_view_vector, camera_up_vector);
 
 // Variáveis que controlam rotação do antebraço
 float g_ForearmAngleZ = 0.0f;
@@ -229,6 +257,15 @@ bool g_UsePerspectiveProjection = true;
 
 // Variável que controla se o texto informativo será mostrado na tela.
 bool g_ShowInfoText = true;
+
+LookAtCameraMode look_at_camera_mode = LOOK_AT_CAMERA_OFF;
+float look_at_camera_mode_initial_distance = 5.0f;
+bool last_y_state = false;
+bool last_t_state = false;
+
+float COLLISION_SLOP = 0.0001f; 
+float RESTING_THRESHOLD = 0.001f;
+
 
 // Variáveis que definem um programa de GPU (shaders). Veja função LoadShadersFromFiles().
 GLuint g_GpuProgramID = 0;
@@ -246,6 +283,14 @@ GLint g_projection_uniform_gouraud;
 GLint g_object_id_uniform_gouraud;
 GLint g_bbox_min_uniform_gouraud;
 GLint g_bbox_max_uniform_gouraud;
+
+// Variável global para o programa do Skybox
+GLuint g_SkyboxProgramID = 0;
+
+// Uniforms do Skybox
+GLint g_skybox_view_uniform = -1;
+GLint g_skybox_projection_uniform = -1;
+
 
 // Número de texturas carregadas pela função LoadTextureImage()
 GLuint g_NumLoadedTextures = 0;
@@ -338,12 +383,33 @@ int main(int argc, char* argv[])
     LoadTextureImage("../../data/Mario/textures/texture_character_clothes.png"); // TextureImage5
     LoadTextureImage("../../data/Mario/textures/texture_character_shoes.png"); // TextureImage6
     LoadTextureImage("../../data/Mario/textures/texture_character_hair.png"); // TextureImage7
+    LoadTextureImage("../../data/grass.jpg"); // TextureImageGrass
+    LoadTextureImage("../../data/grass_sides3.png"); // TextureImageGrassSide
+    LoadTextureImage("../../data/dirt.png"); // TextureImageDirt
+    //LoadTextureImage("../../data/bird_texture.png"); // TextureImageBlueBird
+
     
+    std::vector<std::string> skyboxFaces = {
+        "../../data/skybox/right.jpg",
+        "../../data/skybox/left.jpg",
+        "../../data/skybox/top.jpg",
+        "../../data/skybox/bottom.jpg",
+        "../../data/skybox/front.jpg",
+        "../../data/skybox/back.jpg"
+    };
+
+    GLuint skyboxTextureID = LoadCubemap(skyboxFaces);
+
+
     // Construímos a representação de objetos geométricos através de malhas de triângulos
 
     ObjModel platformmodel("../../data/platform.obj");
     ComputeNormals(&platformmodel);
     BuildTrianglesAndAddToVirtualScene(&platformmodel);
+
+    // Estamos definindo a bounding box da plataforma manualmente com base na translação aplicada no modelo, já que essa atualização não ocorre de forma automática
+    g_VirtualScene["platform"].bbox_min.y = -2.0f;
+    g_VirtualScene["platform"].bbox_max.y = 0.0f;
 
     ObjModel birdmodel("../../data/achara_bird2.obj");
     ComputeNormals(&birdmodel);
@@ -353,6 +419,40 @@ int main(int argc, char* argv[])
     ComputeNormals(&charactermodel);
     BuildTrianglesAndAddToVirtualScene(&charactermodel);
 
+    ObjModel skyboxmodel("../../data/skybox.obj");
+    ComputeNormals(&skyboxmodel);
+    BuildTrianglesAndAddToVirtualScene(&skyboxmodel);
+
+
+    std::vector<OBB> character_obbs = {
+        createOBBFromAABB(g_VirtualScene["submesh_0"].bbox_min, g_VirtualScene["submesh_0"].bbox_max), // hat
+        createOBBFromAABB(g_VirtualScene["submesh_1"].bbox_min, g_VirtualScene["submesh_1"].bbox_max), // hair
+        createOBBFromAABB(g_VirtualScene["submesh_2"].bbox_min, g_VirtualScene["submesh_2"].bbox_max), // gloves
+        createOBBFromAABB(g_VirtualScene["submesh_3"].bbox_min, g_VirtualScene["submesh_3"].bbox_max), // face
+        createOBBFromAABB(g_VirtualScene["submesh_4"].bbox_min, g_VirtualScene["submesh_4"].bbox_max), // pants
+        createOBBFromAABB(g_VirtualScene["submesh_5"].bbox_min, g_VirtualScene["submesh_5"].bbox_max),  // clothes
+        createOBBFromAABB(g_VirtualScene["submesh_6"].bbox_min, g_VirtualScene["submesh_6"].bbox_max) // boots
+    };
+
+    std::vector<glm::vec3> character_obbs_initial_centers = {
+        character_obbs[HAT].center,
+        character_obbs[HAIR].center,
+        character_obbs[GLOVES].center,
+        character_obbs[FACE].center,
+        character_obbs[PANTS].center,
+        character_obbs[CLOTHES].center,
+        character_obbs[BOOTS].center
+    };
+
+    std::vector<glm::vec3> character_bbs_initial_half_sizes = {
+        character_obbs[HAT].half_sizes,
+        character_obbs[HAIR].half_sizes,
+        character_obbs[GLOVES].half_sizes,
+        character_obbs[FACE].half_sizes,
+        character_obbs[PANTS].half_sizes,
+        character_obbs[CLOTHES].half_sizes,
+        character_obbs[BOOTS].half_sizes,
+    };
 
     if ( argc > 1 )
     {
@@ -399,49 +499,15 @@ int main(int argc, char* argv[])
 
         // Pedimos para a GPU utilizar o programa de GPU criado acima (contendo
         // os shaders de vértice e fragmentos).
-        glUseProgram(g_GpuProgramID);
+      //  glUseProgram(g_GpuProgramID);
 
         // provavelmente será alterado no futuro para que a depender do objeto, diferentes modos de iluminação possam ser utilizados.
 
 
-        // Computamos a posição da câmera utilizando coordenadas esféricas.  As
-        // variáveis g_CameraDistance, g_CameraPhi, e g_CameraTheta são
-        // controladas pelo mouse do usuário. Veja as funções CursorPosCallback()
-        // e ScrollCallback().
 
-        // Inverte a câmera para olhar para o personagem
-
-        glm::vec4 camera_lookat_l = glm::vec4(character_position_c.x, 2.6f, character_position_c.z, 1.0f);
-        glm::vec4 camera_view_vector;
-
-        float r, x, y, z;
-
-        bool look_at_camera_mode = glfwGetKey(window, GLFW_KEY_Y) == GLFW_PRESS;
-
-        if(look_at_camera_mode){
-            r = g_CameraDistance + 5.0f;
-            y = - r*sin(g_CameraPhi);
-            z = r*cos(g_CameraPhi)*cos(g_CameraTheta);
-            x = r*cos(g_CameraPhi)*sin(g_CameraTheta);
-            camera_view_vector = camera_lookat_l - camera_position_c; // Vetor "view", sentido para onde a câmera está virada
-        }
-
-        else{
-            r = g_CameraDistance;
-            y = - r*sin(g_CameraPhi);
-            z = r*cos(g_CameraPhi)*cos(g_CameraTheta);
-            x = r*cos(g_CameraPhi)*sin(g_CameraTheta);
-            camera_view_vector = glm::vec4(x,y,z,0.0f); // Vetor "view", sentido para onde a câmera está virada
-        }
-
-        // Abaixo definimos as varáveis que efetivamente definem a câmera virtual.
-        // Veja slides 195-227 e 229-234 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
-
-        glm::vec4 camera_up_vector   = glm::vec4(0.0f,1.0f,0.0f,0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
-
-        // Computamos a matriz "View" utilizando os parâmetros da câmera para
-        // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
-        glm::mat4 view = Matrix_Camera_View(camera_position_c, camera_view_vector, camera_up_vector);
+        // ======================================================
+        // FÍSICA E LÓGICA DO JOGO
+        // ======================================================
 
         // view é uma matriz na forma:
         //     ux  ,   uy  ,  uz  , dotproduct(-u, c),  // LINHA 1
@@ -462,11 +528,11 @@ int main(int argc, char* argv[])
         glm::vec4 w = glm::vec4(wx, wy, wz, 0.0f);
         glm::vec4 u = glm::vec4(ux, uy, uz, 0.0f);
 
-        float speed = 2.5;
+        float speed = 5.0f;
 
         float forward_direction;
 
-        if(look_at_camera_mode){
+        if(look_at_camera_mode == LOOK_AT_CAMERA_MODE_FRONT){
             forward_direction = -1.0f;
         }
         else{
@@ -476,54 +542,171 @@ int main(int argc, char* argv[])
         glm::vec4 forward = normalize(-glm::vec4(wx, 0.0f, wz, 0.0f));
         glm::vec4 right   = normalize(glm::vec4(ux, 0.0f, uz, 0.0f));
 
-        glm::vec4 delta_position = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 
+        glm::vec4 move_dir(0.0f);
 
-        // Atualiza a posição da câmera com base na entrada do teclado
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-            delta_position += forward *  forward_direction * speed * delta_time;
+            move_dir += forward * forward_direction;
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-            delta_position += -forward * forward_direction * speed * delta_time;
+            move_dir -= forward * forward_direction;
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-            delta_position += -right * speed * delta_time;
+            move_dir -= right * forward_direction;
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-            delta_position += right * speed * delta_time;
+            move_dir += right * forward_direction;
+
+        // Normalizamos o vetor para que não importe o ângulo do movimento, o comprimento do vetor velocidae vai ser sempre o mesmo
+        // Isso evita do personagem andar mais devagar olhando para baixo ou para cima, por exemplo
+        if (glm::length(move_dir) > 0.0f)
+            move_dir = glm::normalize(move_dir);
+        
+
+        float targetSpeed = speed;
+        glm::vec4 horizontal_velocity = move_dir * targetSpeed;
+        character_velocity.x = horizontal_velocity.x;
+        character_velocity.z = horizontal_velocity.z;
+
+       // Atraso de um frame para aplicar a gravidade, mas evita completamente oscilações verticais se o persongem estiver no chão
+       if(!grounded){
+            character_velocity.y += gravity * delta_time;
+       }
+       else
+            character_velocity.y = 0.0f;
 
 
-        if (!is_jumping && glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-            is_jumping = true;
-            jump_velocity.y = 5.0f;
+
+    printf("Character velocity Y: %f\n", character_velocity.y);
+    character_position_c += character_velocity * delta_time;
+
+    printf("Character position Y before collision: %f\n", character_position_c.y);
+
+  
+
+   for(int i = 0; i < character_obbs.size(); i++){
+        // Atualiza OBBs do personagem de acordo com a posição atual
+        resolve_collision_obb_aabb(character_position_c, character_velocity, grounded, (i == BOOTS), character_obbs[i], g_VirtualScene["platform"].bbox_min, g_VirtualScene["platform"].bbox_max );
+    }
+
+    printf("Character position Y after collision: %f\n", character_position_c.y);
+    printf("Grounded: %d\n", grounded);
+    // Se acrescentarmos mais plataformas, podemos muito bem simplesmente chamar mais de uma vez a função acima e parar de checar pelas plataformas se o personagem já estiver "grounded" após uma detecção
+    // Para objetos no entanto, teremos que aplicar a verificação em todos
+
+    
+    if (colision_with_void(character_position_c.y)) {
+        character_position_c = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        grounded = true;
+    }
+
+    if (grounded && glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+        grounded = false;
+        character_velocity.y = 5.0f;
+    }
+
+
+        // ======================================================
+        // ATUALIZAÇÃO DA CÂMERA
+        // ======================================================
+
+        // Computamos a posição da câmera utilizando coordenadas esféricas.  As
+        // variáveis g_CameraDistance, g_CameraPhi, e g_CameraTheta são
+        // controladas pelo mouse do usuário. Veja as funções CursorPosCallback()
+        // e ScrollCallback().
+
+        // Inverte a câmera para olhar para o personagem
+
+        glm::vec4 camera_lookat_l = glm::vec4(character_position_c.x, character_position_c.y + 2.6f, character_position_c.z, 1.0f);
+        glm::vec4 camera_view_vector;
+
+        bool current_y_state = glfwGetKey(window, GLFW_KEY_Y) == GLFW_PRESS;
+
+        bool current_t_state = glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS;
+
+        // Evita problema de apertar ambos botões juntos
+        if (current_y_state && current_t_state) {
+            current_y_state = false;
+            current_t_state = false;
         }
-
-        if (is_jumping) {
-            jump_velocity += gravity * delta_time;
-
-            // 2. Atualiza posição com a velocidade
-            character_position_c += jump_velocity * delta_time;
-
-            printf("Jump velocity: (%.2f, %.2f, %.2f)\n",
-                jump_velocity.x, jump_velocity.y, jump_velocity.z);
-
-            // Chamada simples de colisão com o chão
-            // Substitui:
-            /*
-                glm::vec3 bbox_min = g_VirtualScene["submesh_6"].bbox_min;
-                glm::vec3 bbox_max = g_VirtualScene["submesh_6"].bbox_max;
-
-                if(colision_aabb_plane(bbox_min, bbox_max, glm::vec3(0.0f, 1.0f, 0.0f), 0.0f)){
-                }
-            */
-            if (character_position_c.y <= 0.0f) {
-                character_position_c.y = 0.0f;
-                jump_velocity.y = 0.0f;
-                is_jumping = false;
+        
+        if (current_y_state && !last_y_state) {
+            if(look_at_camera_mode != LOOK_AT_CAMERA_MODE_FRONT){
+                look_at_camera_mode = LOOK_AT_CAMERA_MODE_FRONT;
+            }
+            else{
+                look_at_camera_mode = LOOK_AT_CAMERA_OFF;
             }
         }
 
-        character_position_c += delta_position;
-        camera_position_c = character_position_c + glm::vec4(x, y+2.6f, z, 0.0f);
+        if (current_t_state && !last_t_state) {
+            if(look_at_camera_mode != LOOK_AT_CAMERA_MODE_BACK){
+                look_at_camera_mode = LOOK_AT_CAMERA_MODE_BACK;
+            }
+            else{
+                look_at_camera_mode = LOOK_AT_CAMERA_OFF;
+            }
+        }
 
-    
+        last_y_state = current_y_state;
+        last_t_state = current_t_state;
+
+        if(look_at_camera_mode == LOOK_AT_CAMERA_MODE_BACK){
+            if(g_CameraPhi < -3.141592f/2 + 0.25f)
+                g_CameraPhi = -3.141592f/2 + 0.25f;
+            r = - g_CameraDistance - look_at_camera_mode_initial_distance;
+            y = - r*sin(g_CameraPhi);
+            z = r*cos(g_CameraPhi)*cos(g_CameraTheta);
+            x = r*cos(g_CameraPhi)*sin(g_CameraTheta);
+            camera_position_c = character_position_c + glm::vec4(x, y+2.6f, z, 0.0f);
+            camera_view_vector = camera_lookat_l - camera_position_c; // Vetor "view", sentido para onde a câmera está virada
+
+        }
+
+        else if(look_at_camera_mode == LOOK_AT_CAMERA_MODE_FRONT){
+            if(g_CameraPhi > 3.141592f/2 - 0.25f)
+                g_CameraPhi = 3.141592f/2 - 0.25f;
+            r = g_CameraDistance + look_at_camera_mode_initial_distance;
+            y = - r*sin(g_CameraPhi);
+            z = r*cos(g_CameraPhi)*cos(g_CameraTheta);
+            x = r*cos(g_CameraPhi)*sin(g_CameraTheta);
+            camera_position_c = character_position_c + glm::vec4(x, y+2.6f, z, 0.0f);
+            camera_view_vector = camera_lookat_l - camera_position_c; // Vetor "view", sentido para onde a câmera está virada
+        }
+
+        else{
+            if(g_CameraPhi > 3.141592f/2 - 0.25f)
+                g_CameraPhi = 3.141592f/2 - 0.25f;
+            g_CameraDistance = 1.4f;
+            r = g_CameraDistance;
+            y = - r*sin(g_CameraPhi);
+            z = r*cos(g_CameraPhi)*cos(g_CameraTheta);
+            x = r*cos(g_CameraPhi)*sin(g_CameraTheta);
+            camera_position_c = character_position_c + glm::vec4(x, y+2.6f, z, 0.0f);
+            camera_view_vector = glm::vec4(x,y,z,0.0f); // Vetor "view", sentido para onde a câmera está virada
+        }
+
+
+        glm::vec3 look = glm::vec3(camera_lookat_l);
+        glm::vec3 dir  = glm::vec3(camera_position_c) - look;
+
+        float desiredDist = glm::length(dir);
+        dir = glm::normalize(dir);
+
+        OBB obb = createOBBFromAABB(g_VirtualScene["platform"].bbox_min,
+                                    g_VirtualScene["platform"].bbox_max);
+
+        camera_position_c = glm::vec4(resolve_collision_ray_obb(look, dir, desiredDist, obb, 0.05f), 1.0f);
+
+        // Abaixo definimos as varáveis que efetivamente definem a câmera virtual.
+        // Veja slides 195-227 e 229-234 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
+
+        // Computamos a matriz "View" utilizando os parâmetros da câmera para
+        // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
+        view = Matrix_Camera_View(camera_position_c, camera_view_vector, camera_up_vector);
+
+        // ======================================================
+        // PROJEÇÃO
+        // ======================================================
+
+
         // Agora computamos a matriz de Projeção.
         glm::mat4 projection;
 
@@ -553,6 +736,47 @@ int main(int argc, char* argv[])
             projection = Matrix_Orthographic(l, r, b, t, nearplane, farplane);
         }
 
+
+// ---------------------------------------------------------------------
+// 2. DESENHO DO SKYBOX (PRIMEIRO OU ÚLTIMO)
+// ---------------------------------------------------------------------
+
+// Boa prática: renderizar o Skybox primeiro ou por último para otimização de profundidade.
+// Vamos renderizá-lo primeiro, ANTES de enviar a matriz View padrão.
+
+// A) Preparar a Matriz View sem Translação (apenas Rotação)
+// Removemos a 4ª coluna (translação) da matriz View original.
+
+// --- Skybox ---
+glDepthMask(GL_FALSE);
+glDepthFunc(GL_LEQUAL);
+glDisable(GL_CULL_FACE);
+
+glUseProgram(g_SkyboxProgramID);
+
+glm::mat4 view_skybox = glm::mat4(glm::mat3(view));
+glUniformMatrix4fv(g_skybox_view_uniform, 1, GL_FALSE, glm::value_ptr(view_skybox));
+glUniformMatrix4fv(g_skybox_projection_uniform, 1, GL_FALSE, glm::value_ptr(projection));
+
+glActiveTexture(GL_TEXTURE13);
+glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTextureID);
+glUniform1i(glGetUniformLocation(g_SkyboxProgramID, "skybox"), 13);
+
+DrawVirtualObject("Skybox");
+
+glDepthMask(GL_TRUE);
+glDepthFunc(GL_LESS);
+glEnable(GL_CULL_FACE);
+
+
+
+        // ======================================================
+        // RENDERIZAÇÃO DA CENA VIRTUAL
+        // ======================================================
+
+glUseProgram(g_GpuProgramID); // Use o programa de shader dedicado.
+
+
         glm::mat4 model = Matrix_Identity(); // Transformação identidade de modelagem
 
         // Enviamos as matrizes "view" e "projection" para a placa de vídeo
@@ -575,17 +799,26 @@ int main(int argc, char* argv[])
         #define MARIO_SHOES 11
         #define MARIO_HAIR 12
 
-        // Desenhamos a plataforms
+
+
+        // Desenhamos a plataforma
         model = Matrix_Translate(0.0f,-1.0f,0.0f);
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, PLATFORM);
         DrawVirtualObject("platform");
 
-
+        // Atualizamos a AABB da plataforma para colisões
+ 
         // Desenhamos o personagem
-        model = Matrix_Translate(character_position_c.x, character_position_c.y, character_position_c.z);
-        model = model * Matrix_Scale(0.5f, 0.5f, 0.5f);
-        model = model * Matrix_Rotate_Y(g_CameraTheta);
+        model = Matrix_Translate(character_position_c.x, character_position_c.y, character_position_c.z)
+            * Matrix_Rotate_Y(g_CameraTheta)
+            * Matrix_Scale(0.5f, 0.5f, 0.5f);
+
+        for(int i = 0; i < character_obbs.size(); i++){
+            glm::vec3 initial_half_sizes = character_bbs_initial_half_sizes[i];
+            updateOBB(character_obbs[i], model, character_obbs_initial_centers[i], character_bbs_initial_half_sizes[i]);
+        }
+
 
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, MARIO_PANTS);
@@ -621,16 +854,11 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, MARIO_SHOES);
         DrawVirtualObject("submesh_6");
+        
 
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, MARIO_HAIR);
         DrawVirtualObject("submesh_1");
-
-        
-        // DrawVirtualObject("submesh_5"); ROUPA
-        
-        //DrawVirtualObject("submesh_6"); SAPATO
-
 
 
         // Desenhamos os pássaros voando em curvas de Bézier
@@ -797,11 +1025,32 @@ void LoadShadersFromFiles()
     //GLuint vertex_shader_gouraud_id = LoadShader_Vertex("../../src/shader_vertex_gouraud.glsl");
     //GLuint fragment_shader_gouraud_id = LoadShader_Fragment("../../src/shader_fragment_gouraud.glsl");
 
+    // Novos caminhos para os shaders do Skybox
+    GLuint vertex_shader_skybox_id = LoadShader_Vertex("../../src/shader_vertex_skybox.glsl");
+    GLuint fragment_shader_skybox_id = LoadShader_Fragment("../../src/shader_fragment_skybox.glsl");
+
+
     // Deletamos o programa de GPU anterior, caso ele exista.
     if ( g_GpuProgramID != 0 )
         glDeleteProgram(g_GpuProgramID);
-    if ( g_GpuProgramID_gouraud != 0 )
-        glDeleteProgram(g_GpuProgramID);
+
+
+    // ------------------------------------
+    // Skybox
+    // ####################################
+    
+    // Criamos um programa de GPU para o Skybox.
+    g_SkyboxProgramID = CreateGpuProgram(vertex_shader_skybox_id, fragment_shader_skybox_id);
+
+    // Buscamos o endereço das variáveis (Uniforms) do programa Skybox.
+    g_skybox_view_uniform       = glGetUniformLocation(g_SkyboxProgramID, "view");
+    g_skybox_projection_uniform = glGetUniformLocation(g_SkyboxProgramID, "projection");
+    
+    // Configura a unidade de textura do Cubemap.
+    glUseProgram(g_SkyboxProgramID);
+    // skybox é o nome que usamos no Fragment Shader. Ele usará a unidade 13 neste caso.
+    glUniform1i(glGetUniformLocation(g_SkyboxProgramID, "skybox"), 13);
+    
 
     // Gouraud
     // ###############################
@@ -849,6 +1098,13 @@ void LoadShadersFromFiles()
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage5"), 5);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage6"), 6);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage7"), 7);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImageGrass"), 8);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImageGrassSide"), 9);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImageDirt"), 10);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImageBlueBird"), 11);
+
+
+
     glUseProgram(0);
 }
 
@@ -1398,16 +1654,38 @@ void CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
         g_CameraTheta -= sensitivity*dx;
         g_CameraPhi   += sensitivity*dy;
     
+        // Se a câmera estiver em primeira pessoa, o ângulo phi varia entre -pi/2 + 0.1 e +pi/2
+       // if(look_at_camera_mode == 0){
+       //     float phimax = 3.141592f/2 - 0.1f;
+       //     float phimin = -phimax;
+       // }
+       // else{}
+
+       float phimax, phimin;
+       if(look_at_camera_mode == 0){
+            phimax = 3.141592f/2 - 0.25f;
+            phimin = -3.141592f/2;
+         }
+        else if(look_at_camera_mode == 1){
+                phimax = 3.141592f/2 - 0.25f;
+                phimin = -3.141592f/2;
+            }
+
+        else{
+                phimax = 3.141592f/2;
+                phimin = -3.141592f/2 + 0.25f;
+            }
+
         // Em coordenadas esféricas, o ângulo phi deve ficar entre -pi/2 e +pi/2.
-        float phimax = 3.141592f/2;
-        float phimin = -phimax;
+
     
         if (g_CameraPhi > phimax)
             g_CameraPhi = phimax;
     
         if (g_CameraPhi < phimin)
             g_CameraPhi = phimin;
-    
+
+
         // Atualizamos as variáveis globais para armazenar a posição atual do
         // cursor como sendo a última posição conhecida do cursor.
         g_LastCursorPosX = xpos;
@@ -1452,16 +1730,19 @@ void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
     // Atualizamos a distância da câmera para a origem utilizando a
     // movimentação da "rodinha", simulando um ZOOM.
-    g_CameraDistance -= 0.1f*yoffset;
+    if(look_at_camera_mode == 1 || look_at_camera_mode == 2){
+        g_CameraDistance -= 0.1f*yoffset;
 
-    // Uma câmera look-at nunca pode estar exatamente "em cima" do ponto para
-    // onde ela está olhando, pois isto gera problemas de divisão por zero na
-    // definição do sistema de coordenadas da câmera. Isto é, a variável abaixo
-    // nunca pode ser zero. Versões anteriores deste código possuíam este bug,
-    // o qual foi detectado pelo aluno Vinicius Fraga (2017/2).
-    const float verysmallnumber = std::numeric_limits<float>::epsilon();
-    if (g_CameraDistance < verysmallnumber)
-        g_CameraDistance = verysmallnumber;
+        // Uma câmera look-at nunca pode estar exatamente "em cima" do ponto para
+        // onde ela está olhando, pois isto gera problemas de divisão por zero na
+        // definição do sistema de coordenadas da câmera. Isto é, a variável abaixo
+        // nunca pode ser zero. Versões anteriores deste código possuíam este bug,
+        // o qual foi detectado pelo aluno Vinicius Fraga (2017/2).
+        const float verysmallnumber = std::numeric_limits<float>::epsilon();
+        if (g_CameraDistance + look_at_camera_mode_initial_distance < 1.8f)
+            g_CameraDistance = 1.8f - look_at_camera_mode_initial_distance;
+    }
+
 }
 
 // Definição da função que será chamada sempre que o usuário pressionar alguma

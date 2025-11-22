@@ -33,6 +33,7 @@ uniform mat4 projection;
 #define MARIO_SHOES 11
 #define MARIO_HAIR 12
 
+
 uniform int object_id;
 
 // Parâmetros da axis-aligned bounding box (AABB) do modelo
@@ -65,10 +66,17 @@ uniform sampler2D TextureImage6;
 // Mario Hair
 uniform sampler2D TextureImage7;
 
+// Grass
+uniform sampler2D TextureImageGrass;
 
+// GrassSide
+uniform sampler2D TextureImageGrassSide;
 
+// Dirt
+uniform sampler2D TextureImageDirt;
 
-
+// Blue Bird 
+uniform sampler2D TextureImageBlueBird;
 
 
 // O valor de saída ("out") de um Fragment Shader é a cor final do fragmento.
@@ -177,10 +185,12 @@ void main()
     }
     else if ( object_id == PLATFORM )
     {
-        Kd = vec3(0.4, 0.9, 0.5);
-        Ks = vec3(0.4, 0.4, 0.4);
-        Ka = Kd/2;
-        q = 8.0;
+
+     Kd = vec3(0.4, 0.9, 0.5);
+     Ks = vec3(0.4, 0.4, 0.4);
+     Ka = Kd/2;
+     q = 8.0;
+
     }
     else if ( object_id == BIRD )
     {
@@ -269,9 +279,56 @@ void main()
         color.rgb = Kd_mario * (lambert + 0.01);
     }
 
+    //else if(object_id == BIRD){
+    //    float lambert = max(0, n_dot_l);
+
+     //   color.rgb = texture(TextureImageBlueBird, texcoords).rgb;
+    //}
+
+    else if ( object_id == PLATFORM )
+    {
+
+    
+       vec4 abs_normal = abs(normal);
+       vec3 Kd_grass;
+       float lambert = max(0, n_dot_l);
 
 
 
+    
+       if (abs_normal.y >= abs_normal.x && abs_normal.y >= abs_normal.z) 
+        {
+            if (normal.y > 0.0) {
+                // Face de Cima (Topo)
+                Kd_grass = texture(TextureImageGrass, vec2(position_model.x, position_model.z)).rgb;
+            } else {
+                // Face de Baixo (Fundo)
+                Kd_grass =  texture(TextureImageDirt, vec2(position_model.x, position_model.z)).rgb;
+            }
+
+        }
+
+        else{
+            float miny = bbox_min.y + 1.0f;
+            float maxy = bbox_max.y + 1.0f;
+
+            V = ((position_model.y - miny) / (maxy - miny));
+
+            if (abs_normal.x >= abs_normal.z)
+            {
+                Kd_grass = texture(TextureImageGrassSide, vec2(position_model.z, V)).rgb;
+            }
+
+            else{
+                Kd_grass = texture(TextureImageGrassSide, vec2(position_model.x, V)).rgb;
+            }
+
+        
+       }
+
+            color.rgb = Kd_grass * (lambert + 0.01);
+
+    }
 
     else if (object_id < 2) {
         // Obtemos a refletância difusa a partir da leitura da imagem TextureImage0
