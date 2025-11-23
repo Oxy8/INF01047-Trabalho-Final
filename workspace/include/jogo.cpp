@@ -93,6 +93,23 @@ struct CubicBézierCurve {
 
 typedef std::vector<CubicBézierCurve> ClosedCompositeCubicBézierCurve;
 
+// Returns the position the bird is to be drawn at.
+glm::vec4 birdPosition(ClosedCompositeCubicBézierCurve curve, float time) {
+    
+    int n_segments = curve.size();
+    if (n_segments == 0) { return glm::vec4(0.0f, 0.0f, 0.0f, 0.0f); };
+
+    float remainder = std::fmod(time, n_segments);
+    int segment_index = floor(remainder);
+
+    CubicBézierCurve selected_segment = curve[segment_index];
+
+    glm::vec4 draw_point = selected_segment.point(remainder-(float)segment_index);
+
+    return draw_point;
+}
+
+
 glm::mat4 prepareDrawBird(ClosedCompositeCubicBézierCurve curve, float time) {
     
     int n_segments = curve.size();
@@ -143,9 +160,6 @@ ClosedCompositeCubicBézierCurve generateClosedBezierCycle(const std::vector<glm
 
     return curves;
 }
-
-
-
 
 
 GLuint LoadCubemap(const std::vector<std::string>& faces)

@@ -295,6 +295,25 @@ GLint g_skybox_projection_uniform = -1;
 // Número de texturas carregadas pela função LoadTextureImage()
 GLuint g_NumLoadedTextures = 0;
 
+// =#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#
+// Declaração global dos projéteis (cogumelos)
+// =#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#
+
+struct Cogumelo {
+    float timeAlive;
+    glm::vec4 position;
+    glm::vec4 speedVec;
+};
+
+const float maxTimeAliveCogu = 4;
+
+std::vector<Cogumelo> lista_cogumelos = {};
+// Quando usuário clica com botão esquerdo do mouse, um projétil novo é adicionado a lista.
+// A cada frame, iteramos toda a lista, atualiza timeAlive, e ve se algum dos cogumelos excedeu o limite de tempo.
+
+float leftClickHoldTime = 0.0;
+bool mouseWasPressedLastFrame = false;
+
 int main(int argc, char* argv[])
 {
     // Inicializamos a biblioteca GLFW, utilizada para criar uma janela do
@@ -386,7 +405,7 @@ int main(int argc, char* argv[])
     LoadTextureImage("../../data/grass.jpg"); // TextureImageGrass
     LoadTextureImage("../../data/grass_sides3.png"); // TextureImageGrassSide
     LoadTextureImage("../../data/dirt.png"); // TextureImageDirt
-    //LoadTextureImage("../../data/bird_texture.png"); // TextureImageBlueBird
+    LoadTextureImage("../../data/mushroom-sharp.png"); // TextureImageCogumelo
 
     
     std::vector<std::string> skyboxFaces = {
@@ -414,6 +433,10 @@ int main(int argc, char* argv[])
     ObjModel birdmodel("../../data/achara_bird2.obj");
     ComputeNormals(&birdmodel);
     BuildTrianglesAndAddToVirtualScene(&birdmodel);
+
+    ObjModel cogumelomodel("../../data/cogumelo.obj");
+    ComputeNormals(&cogumelomodel);
+    BuildTrianglesAndAddToVirtualScene(&cogumelomodel);
 
     ObjModel charactermodel("../../data/Mario/source/Mario.obj");
     ComputeNormals(&charactermodel);
@@ -499,108 +522,9 @@ int main(int argc, char* argv[])
 
         // Pedimos para a GPU utilizar o programa de GPU criado acima (contendo
         // os shaders de vértice e fragmentos).
-      //  glUseProgram(g_GpuProgramID);
+        // glUseProgram(g_GpuProgramID);
 
         // provavelmente será alterado no futuro para que a depender do objeto, diferentes modos de iluminação possam ser utilizados.
-
-
-
-        // ======================================================
-        // FÍSICA E LÓGICA DO JOGO
-        // ======================================================
-
-        // view é uma matriz na forma:
-        //     ux  ,   uy  ,  uz  , dotproduct(-u, c),  // LINHA 1
-        //     vx  ,   vy  ,  vz  , dotproduct(-v, c),  // LINHA 2
-        //     wx  ,   wy  ,  wz  , dotproduct(-w, c),  // LINHA 3
-        //    0.0f , 0.0f  , 0.0f ,        1.0f         // LINHA 4
-
-        // Extraimos w de view (w = - camera_view / norm(camera_view))
-        float wx = view[0][2];
-        float wy = view[1][2];
-        float wz = view[2][2];
-
-        // Extraimos u de view (u = crossproduct(up, w) / norm(crossproduct(up, w)))
-        float ux = view[0][0];
-        float uy = view[1][0];
-        float uz = view[2][0];
-
-        glm::vec4 w = glm::vec4(wx, wy, wz, 0.0f);
-        glm::vec4 u = glm::vec4(ux, uy, uz, 0.0f);
-
-        float speed = 5.0f;
-
-        float forward_direction;
-
-        if(look_at_camera_mode == LOOK_AT_CAMERA_MODE_FRONT){
-            forward_direction = -1.0f;
-        }
-        else{
-            forward_direction = 1.0f;
-        }
-
-        glm::vec4 forward = normalize(-glm::vec4(wx, 0.0f, wz, 0.0f));
-        glm::vec4 right   = normalize(glm::vec4(ux, 0.0f, uz, 0.0f));
-
-
-        glm::vec4 move_dir(0.0f);
-
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-            move_dir += forward * forward_direction;
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-            move_dir -= forward * forward_direction;
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-            move_dir -= right * forward_direction;
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-            move_dir += right * forward_direction;
-
-        // Normalizamos o vetor para que não importe o ângulo do movimento, o comprimento do vetor velocidae vai ser sempre o mesmo
-        // Isso evita do personagem andar mais devagar olhando para baixo ou para cima, por exemplo
-        if (glm::length(move_dir) > 0.0f)
-            move_dir = glm::normalize(move_dir);
-        
-
-        float targetSpeed = speed;
-        glm::vec4 horizontal_velocity = move_dir * targetSpeed;
-        character_velocity.x = horizontal_velocity.x;
-        character_velocity.z = horizontal_velocity.z;
-
-       // Atraso de um frame para aplicar a gravidade, mas evita completamente oscilações verticais se o persongem estiver no chão
-       if(!grounded){
-            character_velocity.y += gravity * delta_time;
-       }
-       else
-            character_velocity.y = 0.0f;
-
-
-
-    printf("Character velocity Y: %f\n", character_velocity.y);
-    character_position_c += character_velocity * delta_time;
-
-    printf("Character position Y before collision: %f\n", character_position_c.y);
-
-  
-
-   for(int i = 0; i < character_obbs.size(); i++){
-        // Atualiza OBBs do personagem de acordo com a posição atual
-        resolve_collision_obb_aabb(character_position_c, character_velocity, grounded, (i == BOOTS), character_obbs[i], g_VirtualScene["platform"].bbox_min, g_VirtualScene["platform"].bbox_max );
-    }
-
-    printf("Character position Y after collision: %f\n", character_position_c.y);
-    printf("Grounded: %d\n", grounded);
-    // Se acrescentarmos mais plataformas, podemos muito bem simplesmente chamar mais de uma vez a função acima e parar de checar pelas plataformas se o personagem já estiver "grounded" após uma detecção
-    // Para objetos no entanto, teremos que aplicar a verificação em todos
-
-    
-    if (colision_with_void(character_position_c.y)) {
-        character_position_c = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-        grounded = true;
-    }
-
-    if (grounded && glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-        grounded = false;
-        character_velocity.y = 5.0f;
-    }
 
 
         // ======================================================
@@ -690,6 +614,159 @@ int main(int argc, char* argv[])
         float desiredDist = glm::length(dir);
         dir = glm::normalize(dir);
 
+
+        // ======================================================
+        // FÍSICA E LÓGICA DO JOGO
+        // ======================================================
+
+        // view é uma matriz na forma:
+        //     ux  ,   uy  ,  uz  , dotproduct(-u, c),  // LINHA 1
+        //     vx  ,   vy  ,  vz  , dotproduct(-v, c),  // LINHA 2
+        //     wx  ,   wy  ,  wz  , dotproduct(-w, c),  // LINHA 3
+        //    0.0f , 0.0f  , 0.0f ,        1.0f         // LINHA 4
+
+        // Extraimos w de view (w = - camera_view / norm(camera_view))
+        float wx = view[0][2];
+        float wy = view[1][2];
+        float wz = view[2][2];
+
+        // Extraimos u de view (u = crossproduct(up, w) / norm(crossproduct(up, w)))
+        float ux = view[0][0];
+        float uy = view[1][0];
+        float uz = view[2][0];
+
+        glm::vec4 w = glm::vec4(wx, wy, wz, 0.0f);
+        glm::vec4 u = glm::vec4(ux, uy, uz, 0.0f);
+
+        float speed = 5.0f;
+
+        float forward_direction;
+
+        if(look_at_camera_mode == LOOK_AT_CAMERA_MODE_FRONT){
+            forward_direction = -1.0f;
+        }
+        else{
+            forward_direction = 1.0f;
+        }
+
+        glm::vec4 forward = normalize(-glm::vec4(wx, 0.0f, wz, 0.0f));
+        glm::vec4 right   = normalize(glm::vec4(ux, 0.0f, uz, 0.0f));
+
+
+        glm::vec4 move_dir(0.0f);
+
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+            move_dir += forward * forward_direction;
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+            move_dir -= forward * forward_direction;
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+            move_dir -= right * forward_direction;
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+            move_dir += right * forward_direction;
+
+        // Normalizamos o vetor para que não importe o ângulo do movimento, o comprimento do vetor velocidae vai ser sempre o mesmo
+        // Isso evita do personagem andar mais devagar olhando para baixo ou para cima, por exemplo
+        if (glm::length(move_dir) > 0.0f)
+            move_dir = glm::normalize(move_dir);
+        
+
+        float targetSpeed = speed;
+        glm::vec4 horizontal_velocity = move_dir * targetSpeed;
+        character_velocity.x = horizontal_velocity.x;
+        character_velocity.z = horizontal_velocity.z;
+
+        // Atraso de um frame para aplicar a gravidade, mas evita completamente oscilações verticais se o persongem estiver no chão
+        if(!grounded) {
+            character_velocity.y += gravity * delta_time;
+        }
+        else {
+            character_velocity.y = 0.0f;
+        }
+
+        printf("Character velocity Y: %f\n", character_velocity.y);
+        character_position_c += character_velocity * delta_time;
+
+        printf("Character position Y before collision: %f\n", character_position_c.y);
+
+    
+
+        for(int i = 0; i < character_obbs.size(); i++){
+            // Atualiza OBBs do personagem de acordo com a posição atual
+            resolve_collision_obb_aabb(character_position_c, character_velocity, grounded, (i == BOOTS), character_obbs[i], g_VirtualScene["platform"].bbox_min, g_VirtualScene["platform"].bbox_max );
+        }
+
+        printf("Character position Y after collision: %f\n", character_position_c.y);
+        printf("Grounded: %d\n", grounded);
+        // Se acrescentarmos mais plataformas, podemos muito bem simplesmente chamar mais de uma vez a função acima e parar de checar pelas plataformas se o personagem já estiver "grounded" após uma detecção
+        // Para objetos no entanto, teremos que aplicar a verificação em todos
+
+        
+        if (colision_with_void(character_position_c.y)) {
+            character_position_c = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+            grounded = true;
+        }
+
+        if (grounded && glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+            grounded = false;
+            character_velocity.y = 5.0f;
+        }
+
+        // =#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#
+        // Projéteis
+        // =#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#
+
+        // Cria novos projéteis:
+
+        if (g_LeftMouseButtonPressed) {
+            leftClickHoldTime += delta_time;
+        }
+        if (mouseWasPressedLastFrame && !g_LeftMouseButtonPressed) {
+            // liberou o mouse, cria o projétil
+            float speed_factor = std::min(leftClickHoldTime, 2.5f);
+            glm::vec4 speed_vec = camera_view_vector * (leftClickHoldTime*30);
+            Cogumelo projetil = {0.0, character_position_c, speed_vec};
+            
+            lista_cogumelos.push_back(projetil);
+
+            leftClickHoldTime = 0.0;
+
+            printf("Lança Projétil\n");
+
+        }
+
+        mouseWasPressedLastFrame = g_LeftMouseButtonPressed;
+
+        // Atualiza projéteis existentes:
+        int n_cogus = lista_cogumelos.size();
+        for (int i=0; i< n_cogus; i++) {
+            
+            lista_cogumelos[i].timeAlive += delta_time;
+
+            if (lista_cogumelos[i].timeAlive > maxTimeAliveCogu) {
+                
+                lista_cogumelos[i] = lista_cogumelos[n_cogus-1];
+
+                lista_cogumelos.pop_back();
+
+                i--;
+                n_cogus--;
+
+                continue; 
+            }
+
+            // Aqui += porque gravity é negativo
+            lista_cogumelos[i].speedVec.y += gravity * delta_time;
+
+            lista_cogumelos[i].position += lista_cogumelos[i].speedVec * delta_time;
+        }
+        printf("n_cogus: %d \n", n_cogus);
+
+
+
+
+
+
+
         OBB obb = createOBBFromAABB(g_VirtualScene["platform"].bbox_min,
                                     g_VirtualScene["platform"].bbox_max);
 
@@ -713,7 +790,7 @@ int main(int argc, char* argv[])
         // Note que, no sistema de coordenadas da câmera, os planos near e far
         // estão no sentido negativo! Veja slides 176-204 do documento Aula_09_Projecoes.pdf.
         float nearplane = -0.1f;  // Posição do "near plane"
-        float farplane  = -100.0f; // Posição do "far plane"
+        float farplane  = -300.0f; // Posição do "far plane"
 
         if (g_UsePerspectiveProjection)
         {
@@ -737,36 +814,36 @@ int main(int argc, char* argv[])
         }
 
 
-// ---------------------------------------------------------------------
-// 2. DESENHO DO SKYBOX (PRIMEIRO OU ÚLTIMO)
-// ---------------------------------------------------------------------
+        // ---------------------------------------------------------------------
+        // 2. DESENHO DO SKYBOX (PRIMEIRO OU ÚLTIMO)
+        // ---------------------------------------------------------------------
 
-// Boa prática: renderizar o Skybox primeiro ou por último para otimização de profundidade.
-// Vamos renderizá-lo primeiro, ANTES de enviar a matriz View padrão.
+        // Boa prática: renderizar o Skybox primeiro ou por último para otimização de profundidade.
+        // Vamos renderizá-lo primeiro, ANTES de enviar a matriz View padrão.
 
-// A) Preparar a Matriz View sem Translação (apenas Rotação)
-// Removemos a 4ª coluna (translação) da matriz View original.
+        // A) Preparar a Matriz View sem Translação (apenas Rotação)
+        // Removemos a 4ª coluna (translação) da matriz View original.
 
-// --- Skybox ---
-glDepthMask(GL_FALSE);
-glDepthFunc(GL_LEQUAL);
-glDisable(GL_CULL_FACE);
+        // --- Skybox ---
+        glDepthMask(GL_FALSE);
+        glDepthFunc(GL_LEQUAL);
+        glDisable(GL_CULL_FACE);
 
-glUseProgram(g_SkyboxProgramID);
+        glUseProgram(g_SkyboxProgramID);
 
-glm::mat4 view_skybox = glm::mat4(glm::mat3(view));
-glUniformMatrix4fv(g_skybox_view_uniform, 1, GL_FALSE, glm::value_ptr(view_skybox));
-glUniformMatrix4fv(g_skybox_projection_uniform, 1, GL_FALSE, glm::value_ptr(projection));
+        glm::mat4 view_skybox = glm::mat4(glm::mat3(view));
+        glUniformMatrix4fv(g_skybox_view_uniform, 1, GL_FALSE, glm::value_ptr(view_skybox));
+        glUniformMatrix4fv(g_skybox_projection_uniform, 1, GL_FALSE, glm::value_ptr(projection));
 
-glActiveTexture(GL_TEXTURE13);
-glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTextureID);
-glUniform1i(glGetUniformLocation(g_SkyboxProgramID, "skybox"), 13);
+        glActiveTexture(GL_TEXTURE13);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTextureID);
+        glUniform1i(glGetUniformLocation(g_SkyboxProgramID, "skybox"), 13);
 
-DrawVirtualObject("Skybox");
+        DrawVirtualObject("Skybox");
 
-glDepthMask(GL_TRUE);
-glDepthFunc(GL_LESS);
-glEnable(GL_CULL_FACE);
+        glDepthMask(GL_TRUE);
+        glDepthFunc(GL_LESS);
+        glEnable(GL_CULL_FACE);
 
 
 
@@ -774,7 +851,7 @@ glEnable(GL_CULL_FACE);
         // RENDERIZAÇÃO DA CENA VIRTUAL
         // ======================================================
 
-glUseProgram(g_GpuProgramID); // Use o programa de shader dedicado.
+        glUseProgram(g_GpuProgramID); // Use o programa de shader dedicado.
 
 
         glm::mat4 model = Matrix_Identity(); // Transformação identidade de modelagem
@@ -798,6 +875,9 @@ glUseProgram(g_GpuProgramID); // Use o programa de shader dedicado.
         #define MARIO_CLOTHES 10
         #define MARIO_SHOES 11
         #define MARIO_HAIR 12
+        #define COGUMELO0 13
+        #define COGUMELO1 14
+        #define COGUMELO2 15
 
 
 
@@ -810,7 +890,9 @@ glUseProgram(g_GpuProgramID); // Use o programa de shader dedicado.
         // Atualizamos a AABB da plataforma para colisões
  
         // Desenhamos o personagem
-        model = Matrix_Translate(character_position_c.x, character_position_c.y, character_position_c.z)
+
+        glm::mat4 char_pos = Matrix_Translate(character_position_c.x, character_position_c.y, character_position_c.z);
+        model = char_pos
             * Matrix_Rotate_Y(g_CameraTheta)
             * Matrix_Scale(0.5f, 0.5f, 0.5f);
 
@@ -855,7 +937,6 @@ glUseProgram(g_GpuProgramID); // Use o programa de shader dedicado.
         glUniform1i(g_object_id_uniform, MARIO_SHOES);
         DrawVirtualObject("submesh_6");
         
-
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, MARIO_HAIR);
         DrawVirtualObject("submesh_1");
@@ -873,6 +954,28 @@ glUseProgram(g_GpuProgramID); // Use o programa de shader dedicado.
             glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
             glUniform1i(g_object_id_uniform, BIRD);
             DrawVirtualObject("achara_bird");
+        }
+
+        // Desenhamos os projéteis
+        for (int i = 0; i < n_cogus; i++) {
+
+            glm::vec4 cogumelo = lista_cogumelos[i].position;
+
+            model = Matrix_Translate(cogumelo.x, cogumelo.y+4.0, cogumelo.z)
+                * Matrix_Scale(0.2f, 0.2f, 0.2f)
+                * Matrix_Rotate_Y(3.0*glfwGetTime());
+
+            glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+            glUniform1i(g_object_id_uniform, COGUMELO0);
+            DrawVirtualObject("cogumelo");
+
+            glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+            glUniform1i(g_object_id_uniform, COGUMELO1);
+            DrawVirtualObject("best_head_Mesh");
+
+            glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+            glUniform1i(g_object_id_uniform, COGUMELO2);
+            DrawVirtualObject("best_face_Mesh");
         }
 
 
@@ -1101,7 +1204,8 @@ void LoadShadersFromFiles()
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImageGrass"), 8);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImageGrassSide"), 9);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImageDirt"), 10);
-    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImageBlueBird"), 11);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImageCogumelo"), 11);
+    // glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImageBlueBird"), 12);
 
 
 
@@ -1592,33 +1696,33 @@ void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
     }
     if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
     {
-        // Se o usuário pressionou o botão esquerdo do mouse, guardamos a
+        // Se o usuário pressionou o botão direito do mouse, guardamos a
         // posição atual do cursor nas variáveis g_LastCursorPosX e
         // g_LastCursorPosY.  Também, setamos a variável
         // g_RightMouseButtonPressed como true, para saber que o usuário está
-        // com o botão esquerdo pressionado.
+        // com o botão direito pressionado.
         glfwGetCursorPos(window, &g_LastCursorPosX, &g_LastCursorPosY);
         g_RightMouseButtonPressed = true;
     }
     if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE)
     {
-        // Quando o usuário soltar o botão esquerdo do mouse, atualizamos a
+        // Quando o usuário soltar o botão direito do mouse, atualizamos a
         // variável abaixo para false.
         g_RightMouseButtonPressed = false;
     }
     if (button == GLFW_MOUSE_BUTTON_MIDDLE && action == GLFW_PRESS)
     {
-        // Se o usuário pressionou o botão esquerdo do mouse, guardamos a
+        // Se o usuário pressionou o botão do meio do mouse, guardamos a
         // posição atual do cursor nas variáveis g_LastCursorPosX e
         // g_LastCursorPosY.  Também, setamos a variável
         // g_MiddleMouseButtonPressed como true, para saber que o usuário está
-        // com o botão esquerdo pressionado.
+        // com o botão do meio pressionado.
         glfwGetCursorPos(window, &g_LastCursorPosX, &g_LastCursorPosY);
         g_MiddleMouseButtonPressed = true;
     }
     if (button == GLFW_MOUSE_BUTTON_MIDDLE && action == GLFW_RELEASE)
     {
-        // Quando o usuário soltar o botão esquerdo do mouse, atualizamos a
+        // Quando o usuário soltar o botão do meio do mouse, atualizamos a
         // variável abaixo para false.
         g_MiddleMouseButtonPressed = false;
     }
@@ -1635,93 +1739,65 @@ void CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
     // parâmetros que definem a posição da câmera dentro da cena virtual.
     // Assim, temos que o usuário consegue controlar a câmera.
 
-        if(firstMouse)
-        {
-            g_LastCursorPosX = xpos;
-            g_LastCursorPosY = ypos;
-            firstMouse = false;
-        }
-
- //   if (g_LeftMouseButtonPressed)
- //   {
-        // Deslocamento do cursor do mouse em x e y de coordenadas de tela!
-        float dx = xpos - g_LastCursorPosX;
-        float dy = ypos - g_LastCursorPosY;
-    
-        // Atualizamos parâmetros da câmera com os deslocamentos
-
-        float sensitivity = 0.005f;
-        g_CameraTheta -= sensitivity*dx;
-        g_CameraPhi   += sensitivity*dy;
-    
-        // Se a câmera estiver em primeira pessoa, o ângulo phi varia entre -pi/2 + 0.1 e +pi/2
-       // if(look_at_camera_mode == 0){
-       //     float phimax = 3.141592f/2 - 0.1f;
-       //     float phimin = -phimax;
-       // }
-       // else{}
-
-       float phimax, phimin;
-       if(look_at_camera_mode == 0){
-            phimax = 3.141592f/2 - 0.25f;
-            phimin = -3.141592f/2;
-         }
-        else if(look_at_camera_mode == 1){
-                phimax = 3.141592f/2 - 0.25f;
-                phimin = -3.141592f/2;
-            }
-
-        else{
-                phimax = 3.141592f/2;
-                phimin = -3.141592f/2 + 0.25f;
-            }
-
-        // Em coordenadas esféricas, o ângulo phi deve ficar entre -pi/2 e +pi/2.
-
-    
-        if (g_CameraPhi > phimax)
-            g_CameraPhi = phimax;
-    
-        if (g_CameraPhi < phimin)
-            g_CameraPhi = phimin;
-
-
-        // Atualizamos as variáveis globais para armazenar a posição atual do
-        // cursor como sendo a última posição conhecida do cursor.
+    if(firstMouse)
+    {
         g_LastCursorPosX = xpos;
         g_LastCursorPosY = ypos;
-   // }
+        firstMouse = false;
+    }
+
+    // Deslocamento do cursor do mouse em x e y de coordenadas de tela!
+    float dx = xpos - g_LastCursorPosX;
+    float dy = ypos - g_LastCursorPosY;
+
+    // Atualizamos parâmetros da câmera com os deslocamentos
+
+    float sensitivity = 0.003f;
+    g_CameraTheta -= sensitivity*dx;
+    g_CameraPhi   += sensitivity*dy;
+
+
+    float phimax, phimin;
+    if(look_at_camera_mode == 0) {
+        phimax = 3.141592f/2 - 0.25f;
+        phimin = -3.141592f/2;
+    }
+    else if(look_at_camera_mode == 1) {
+        phimax = 3.141592f/2 - 0.25f;
+        phimin = -3.141592f/2;
+    }
+    else {
+        phimax = 3.141592f/2;
+        phimin = -3.141592f/2 + 0.25f;
+    }
+
+    // Em coordenadas esféricas, o ângulo phi deve ficar entre -pi/2 e +pi/2.
+    if (g_CameraPhi > phimax)
+        g_CameraPhi = phimax;
+
+    if (g_CameraPhi < phimin)
+        g_CameraPhi = phimin;
+
+
+    // Atualizamos as variáveis globais para armazenar a posição atual do
+    // cursor como sendo a última posição conhecida do cursor.
+    g_LastCursorPosX = xpos;
+    g_LastCursorPosY = ypos;
+
+    if (g_LeftMouseButtonPressed)
+    {
+
+    }
+
 
     if (g_RightMouseButtonPressed)
     {
-        // Deslocamento do cursor do mouse em x e y de coordenadas de tela!
-        float dx = xpos - g_LastCursorPosX;
-        float dy = ypos - g_LastCursorPosY;
-    
-        // Atualizamos parâmetros da antebraço com os deslocamentos
-        g_ForearmAngleZ -= 0.01f*dx;
-        g_ForearmAngleX += 0.01f*dy;
-    
-        // Atualizamos as variáveis globais para armazenar a posição atual do
-        // cursor como sendo a última posição conhecida do cursor.
-        g_LastCursorPosX = xpos;
-        g_LastCursorPosY = ypos;
+
     }
 
     if (g_MiddleMouseButtonPressed)
     {
-        // Deslocamento do cursor do mouse em x e y de coordenadas de tela!
-        float dx = xpos - g_LastCursorPosX;
-        float dy = ypos - g_LastCursorPosY;
-    
-        // Atualizamos parâmetros da antebraço com os deslocamentos
-        g_TorsoPositionX += 0.01f*dx;
-        g_TorsoPositionY -= 0.01f*dy;
-    
-        // Atualizamos as variáveis globais para armazenar a posição atual do
-        // cursor como sendo a última posição conhecida do cursor.
-        g_LastCursorPosX = xpos;
-        g_LastCursorPosY = ypos;
+
     }
 }
 
