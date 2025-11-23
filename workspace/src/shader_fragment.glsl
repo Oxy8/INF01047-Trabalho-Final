@@ -32,7 +32,9 @@ uniform mat4 projection;
 #define MARIO_CLOTHES 10
 #define MARIO_SHOES 11
 #define MARIO_HAIR 12
-
+#define COGUMELO0 13
+#define COGUMELO1 14
+#define COGUMELO2 15
 
 uniform int object_id;
 
@@ -75,8 +77,11 @@ uniform sampler2D TextureImageGrassSide;
 // Dirt
 uniform sampler2D TextureImageDirt;
 
+// Cogumelo
+uniform sampler2D TextureImageCogumelo;
+
 // Blue Bird 
-uniform sampler2D TextureImageBlueBird;
+//uniform sampler2D TextureImageBlueBird;
 
 
 // O valor de saída ("out") de um Fragment Shader é a cor final do fragmento.
@@ -119,10 +124,10 @@ void main()
     float U = 0.0;
     float V = 0.0;
 
-    vec3 Kd; // Refletância difusa
-    vec3 Ks; // Refletância especular
-    vec3 Ka; // Refletância ambiente
-    float q; // Expoente especular para o modelo de iluminação de Phong
+    vec3 Kd = vec3(0.0, 0.0, 0.0); // Refletância difusa
+    vec3 Ks = vec3(0.0, 0.0, 0.0); // Refletância especular
+    vec3 Ka = vec3(0.0, 0.0, 0.0); // Refletância ambiente
+    float q = 8.0; // Expoente especular para o modelo de iluminação de Phong
 
     if ( object_id == SPHERE )
     {
@@ -183,15 +188,6 @@ void main()
         U = (position_model.x - minx) / (maxx - minx);
         V = (position_model.y - miny) / (maxy - miny);
     }
-    else if ( object_id == PLATFORM )
-    {
-
-     Kd = vec3(0.4, 0.9, 0.5);
-     Ks = vec3(0.4, 0.4, 0.4);
-     Ka = Kd/2;
-     q = 8.0;
-
-    }
     else if ( object_id == BIRD )
     {
         Kd = vec3(0.4, 0.4, 0.8);
@@ -199,111 +195,58 @@ void main()
         Ka = Kd/2;
         q = 32.0;
     }
-
-    else if ( object_id == CHARACTER)
+    else if  ( object_id == COGUMELO0 )
     {
-        Kd = vec3(0.4, 0.4, 0.8);
-        Ks = vec3(0.8, 0.8, 0.8);
+        Kd = vec3(0.1, 0.1, 0.1);
+        Ks = vec3(0.4, 0.4, 0.4);
         Ka = Kd/2;
         q = 32.0;
     }
-    else {
-        Kd = vec3(0.08, 0.4, 0.8);
-        Ks = vec3(0.8, 0.8, 0.8);
-        Ka = Kd/2;
+    else if  ( object_id == COGUMELO2 )
+    {
+        Kd = vec3(0.9, 0.85, 0.6);
+        Ks = vec3(0.2, 0.2, 0.2);
+        Ka = Kd;
         q = 32.0;
     }
-
-
-    if(object_id == MARIO_HAT){
-        vec3 Kd_mario = texture(TextureImage0, texcoords).rgb;
-        // Equação de Iluminação
-        float lambert = max(0, n_dot_l);
-
-        color.rgb = Kd_mario * (lambert + 0.01);
+    else if(object_id == MARIO_HAT){
+        Kd = texture(TextureImage0, texcoords).rgb;
     }
-
     else if(object_id == MARIO_PANTS){
-        vec3 Kd_mario = texture(TextureImage1, texcoords).rgb;
-        // Equação de Iluminação
-        float lambert = max(0, n_dot_l);
-
-        color.rgb = Kd_mario * (lambert + 0.01);
+        Kd = texture(TextureImage1, texcoords).rgb;
     }
-
     else if(object_id == MARIO_FACE){
-        vec3 Kd_mario = texture(TextureImage2, texcoords).rgb;
-        // Equação de Iluminação
-        float lambert = max(0, n_dot_l);
-
-        color.rgb = Kd_mario * (lambert + 0.01);
-    }
-    
+        Kd = texture(TextureImage2, texcoords).rgb;
+    }    
     else if(object_id == MARIO_EYE){
-        vec3 Kd_mario = texture(TextureImage3, texcoords).rgb;
-        // Equação de Iluminação
-        float lambert = max(0, n_dot_l);
-
-        color.rgb = Kd_mario * (lambert + 0.01);
+        Kd = texture(TextureImage3, texcoords).rgb;
     }
-
     else if(object_id == MARIO_GLOVE){
-        vec3 Kd_mario = texture(TextureImage4, texcoords).rgb;
-        // Equação de Iluminação
-        float lambert = max(0, n_dot_l);
-
-        color.rgb = Kd_mario * (lambert + 0.01);
+        Kd = texture(TextureImage4, texcoords).rgb;
     }
-
     else if(object_id == MARIO_CLOTHES){
-        vec3 Kd_mario = texture(TextureImage5, texcoords).rgb;
-        // Equação de Iluminação
-        float lambert = max(0, n_dot_l);
-
-        color.rgb = Kd_mario * (lambert + 0.01);
+        Kd = texture(TextureImage5, texcoords).rgb;
     }
-
     else if(object_id == MARIO_SHOES){
-        vec3 Kd_mario = texture(TextureImage6, texcoords).rgb;
-        // Equação de Iluminação
-        float lambert = max(0, n_dot_l);
-
-        color.rgb = Kd_mario * (lambert + 0.01);
+        Kd = texture(TextureImage6, texcoords).rgb;
     }
-
     else if(object_id == MARIO_HAIR){
-        vec3 Kd_mario = texture(TextureImage7, texcoords).rgb;
-        // Equação de Iluminação
-        float lambert = max(0, n_dot_l);
-
-        color.rgb = Kd_mario * (lambert + 0.01);
+        Kd = texture(TextureImage7, texcoords).rgb;
     }
-
-    //else if(object_id == BIRD){
-    //    float lambert = max(0, n_dot_l);
-
-     //   color.rgb = texture(TextureImageBlueBird, texcoords).rgb;
-    //}
-
     else if ( object_id == PLATFORM )
     {
-
     
-       vec4 abs_normal = abs(normal);
-       vec3 Kd_grass;
-       float lambert = max(0, n_dot_l);
-
-
-
+        vec4 abs_normal = abs(normal);
+        float lambert = max(0, n_dot_l);
     
-       if (abs_normal.y >= abs_normal.x && abs_normal.y >= abs_normal.z) 
+        if (abs_normal.y >= abs_normal.x && abs_normal.y >= abs_normal.z) 
         {
             if (normal.y > 0.0) {
                 // Face de Cima (Topo)
-                Kd_grass = texture(TextureImageGrass, vec2(position_model.x, position_model.z)).rgb;
+                Kd = texture(TextureImageGrass, vec2(position_model.x, position_model.z)).rgb;
             } else {
                 // Face de Baixo (Fundo)
-                Kd_grass =  texture(TextureImageDirt, vec2(position_model.x, position_model.z)).rgb;
+                Kd =  texture(TextureImageDirt, vec2(position_model.x, position_model.z)).rgb;
             }
 
         }
@@ -316,48 +259,44 @@ void main()
 
             if (abs_normal.x >= abs_normal.z)
             {
-                Kd_grass = texture(TextureImageGrassSide, vec2(position_model.z, V)).rgb;
+                Kd = texture(TextureImageGrassSide, vec2(position_model.z, V)).rgb;
             }
-
             else{
-                Kd_grass = texture(TextureImageGrassSide, vec2(position_model.x, V)).rgb;
+                Kd = texture(TextureImageGrassSide, vec2(position_model.x, V)).rgb;
             }
+        }
 
-        
-       }
-
-            color.rgb = Kd_grass * (lambert + 0.01);
-
+        Ka = Kd/4;
+    }
+    else if  ( object_id == COGUMELO1 )
+    {
+       Kd = texture(TextureImageCogumelo, texcoords).rgb;
+       Ka = Kd/2;
+    }
+    else {
+        Kd = vec3(0.08, 0.4, 0.8);
+        Ks = vec3(0.8, 0.8, 0.8);
+        Ka = Kd/2;
+        q = 32.0;
     }
 
-    else if (object_id < 2) {
-        // Obtemos a refletância difusa a partir da leitura da imagem TextureImage0
-        vec3 Kd0 = texture(TextureImage0, vec2(U,V)).rgb;
 
-        // Equação de Iluminação
-        float lambert = max(0, n_dot_l);
+    // Espectro da fonte de iluminação
+    vec3 I = vec3(1.0,1.0,1.0); 
 
-        color.rgb = Kd0 * (lambert + 0.01);
-    } else {
-        // Espectro da fonte de iluminação
-        vec3 I = vec3(1.0,1.0,1.0); 
+    // Termo difuso utilizando a lei dos cossenos de Lambert
+    vec3 lambert_diffuse_term = Kd * I * max(0.0, n_dot_l); 
 
-        // Termo difuso utilizando a lei dos cossenos de Lambert
-        vec3 lambert_diffuse_term = Kd * I * max(0.0, n_dot_l); 
+    // Espectro da luz ambiente
+    vec3 Ia = vec3(0.2, 0.2, 0.2); // PREENCHA AQUI o espectro da luz ambiente
 
-        // Espectro da luz ambiente
-        vec3 Ia = vec3(0.2, 0.2, 0.2); // PREENCHA AQUI o espectro da luz ambiente
+    // Termo ambiente
+    vec3 ambient_term = Ka * Ia; // PREENCHA AQUI o termo ambiente
 
-        // Termo ambiente
-        vec3 ambient_term = Ka * Ia; // PREENCHA AQUI o termo ambiente
+    // Termo especular utilizando o modelo de iluminação de Phong
+    vec3 phong_specular_term  = Ks * I * pow(max(0.0, r_dot_v), q);
 
-        // Termo especular utilizando o modelo de iluminação de Phong
-        vec3 phong_specular_term  = Ks * I * pow(max(0.0, r_dot_v), q);
-
-
-        color.rgb = lambert_diffuse_term + ambient_term + phong_specular_term;
-    }
-
+    color.rgb = lambert_diffuse_term + ambient_term + phong_specular_term;
     
 
     // NOTE: Se você quiser fazer o rendering de objetos transparentes, é
