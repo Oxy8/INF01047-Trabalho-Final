@@ -402,9 +402,9 @@ int main(int argc, char* argv[])
     LoadTextureImage("../../data/Mario/textures/texture_character_clothes.png"); // TextureImage5
     LoadTextureImage("../../data/Mario/textures/texture_character_shoes.png"); // TextureImage6
     LoadTextureImage("../../data/Mario/textures/texture_character_hair.png"); // TextureImage7
-    LoadTextureImage("../../data/grass.jpg"); // TextureImageGrass
-    LoadTextureImage("../../data/grass_sides3.png"); // TextureImageGrassSide
-    LoadTextureImage("../../data/dirt.png"); // TextureImageDirt
+    LoadTextureImage("../../data/top.png"); // TextureImageGrass
+    LoadTextureImage("../../data/side.png"); // TextureImageGrassSide
+    LoadTextureImage("../../data/bottom.png"); // TextureImageDirt
     LoadTextureImage("../../data/mushroom-sharp.png"); // TextureImageCogumelo
 
     
@@ -426,9 +426,12 @@ int main(int argc, char* argv[])
     ComputeNormals(&platformmodel);
     BuildTrianglesAndAddToVirtualScene(&platformmodel);
 
-    // Estamos definindo a bounding box da plataforma manualmente com base na translação aplicada no modelo, já que essa atualização não ocorre de forma automática
-    g_VirtualScene["platform"].bbox_min.y = -2.0f;
-    g_VirtualScene["platform"].bbox_max.y = 0.0f;
+    // BuildTrianglesAndAddToVirtualScene() define bbox min e max
+    for (int i = 0; i< n_plataformas; i++) {
+        Plataforma& plataforma = plataformas[i];
+        plataforma.setBboxOriginal(g_VirtualScene["platform"].bbox_min, g_VirtualScene["platform"].bbox_max);
+        plataforma.atualizaBboxPlataforma();                          
+    }
 
     ObjModel birdmodel("../../data/achara_bird2.obj");
     ComputeNormals(&birdmodel);
@@ -498,6 +501,9 @@ int main(int argc, char* argv[])
 
     // Define o tempo atual em segundos
     float initial_time = glfwGetTime();
+
+
+    glm::vec4 last_horizontal_velocity = {0.0f,0.0f,0.0f,0.0f};
 
     // Ficamos em um loop infinito, renderizando, até que o usuário feche a janela
     while (!glfwWindowShouldClose(window))
@@ -638,7 +644,7 @@ int main(int argc, char* argv[])
         glm::vec4 w = glm::vec4(wx, wy, wz, 0.0f);
         glm::vec4 u = glm::vec4(ux, uy, uz, 0.0f);
 
-        float speed = 5.0f;
+        float speed = 10.0f;
 
         float forward_direction;
 
@@ -671,13 +677,23 @@ int main(int argc, char* argv[])
         
 
         float targetSpeed = speed;
-        glm::vec4 horizontal_velocity = move_dir * targetSpeed;
-        character_velocity.x = horizontal_velocity.x;
-        character_velocity.z = horizontal_velocity.z;
+
+        if(!grounded) {
+            glm::vec4 horizontal_velocity = (last_horizontal_velocity * (0.9f)) + (move_dir * targetSpeed * (0.1f));
+            character_velocity.x = horizontal_velocity.x;
+            character_velocity.z = horizontal_velocity.z;
+            last_horizontal_velocity = horizontal_velocity;
+        } else {
+            glm::vec4 horizontal_velocity = (last_horizontal_velocity * (0.75f)) + (move_dir * targetSpeed * (0.25f));
+            character_velocity.x = horizontal_velocity.x;
+            character_velocity.z = horizontal_velocity.z;
+            last_horizontal_velocity = horizontal_velocity;
+        }
+
 
         // Atraso de um frame para aplicar a gravidade, mas evita completamente oscilações verticais se o persongem estiver no chão
         if(!grounded) {
-            character_velocity.y += gravity * delta_time;
+            character_velocity.y += 2*gravity * delta_time;
         }
         else {
             character_velocity.y = 0.0f;
@@ -689,16 +705,24 @@ int main(int argc, char* argv[])
         printf("Character position Y before collision: %f\n", character_position_c.y);
 
     
-
+        
+        bool grounded_curr = false;
         for(int i = 0; i < character_obbs.size(); i++){
             // Atualiza OBBs do personagem de acordo com a posição atual
-            resolve_collision_obb_aabb(character_position_c, character_velocity, grounded, (i == BOOTS), character_obbs[i], g_VirtualScene["platform"].bbox_min, g_VirtualScene["platform"].bbox_max );
+            
+            for (int j = 0; j< n_plataformas; j++) {
+                // Atualiza grounded considerando colisão com qualquer uma das plataformas
+
+                Plataforma plataforma = plataformas[j];
+                        
+                resolve_collision_obb_aabb(character_position_c, character_velocity, grounded_curr, (i == BOOTS), character_obbs[i], plataforma.bbox_min, plataforma.bbox_max );
+            }
         }
+
+        grounded = grounded_curr;
 
         printf("Character position Y after collision: %f\n", character_position_c.y);
         printf("Grounded: %d\n", grounded);
-        // Se acrescentarmos mais plataformas, podemos muito bem simplesmente chamar mais de uma vez a função acima e parar de checar pelas plataformas se o personagem já estiver "grounded" após uma detecção
-        // Para objetos no entanto, teremos que aplicar a verificação em todos
 
         
         if (colision_with_void(character_position_c.y)) {
@@ -708,7 +732,7 @@ int main(int argc, char* argv[])
 
         if (grounded && glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
             grounded = false;
-            character_velocity.y = 5.0f;
+            character_velocity.y = 10.0f;
         }
 
         // =#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#
@@ -723,7 +747,7 @@ int main(int argc, char* argv[])
         if (mouseWasPressedLastFrame && !g_LeftMouseButtonPressed) {
             // liberou o mouse, cria o projétil
             float speed_factor = std::min(leftClickHoldTime, 2.5f);
-            glm::vec4 speed_vec = camera_view_vector * (leftClickHoldTime*30);
+            glm::vec4 speed_vec = camera_view_vector * std::max(leftClickHoldTime*30, 12.0f);
             Cogumelo projetil = {0.0, character_position_c, speed_vec};
             
             lista_cogumelos.push_back(projetil);
@@ -764,8 +788,7 @@ int main(int argc, char* argv[])
 
 
 
-
-
+        // eu não sei oq isso aqui faz , mas é distinto do que tava encima
 
         OBB obb = createOBBFromAABB(g_VirtualScene["platform"].bbox_min,
                                     g_VirtualScene["platform"].bbox_max);
@@ -881,13 +904,18 @@ int main(int argc, char* argv[])
 
 
 
-        // Desenhamos a plataforma
-        model = Matrix_Translate(0.0f,-1.0f,0.0f);
-        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
-        glUniform1i(g_object_id_uniform, PLATFORM);
-        DrawVirtualObject("platform");
+        // Desenhamos as plataformas
 
-        // Atualizamos a AABB da plataforma para colisões
+        for (int i = 0; i< n_plataformas; i++) {
+
+            Plataforma plataforma = plataformas[i];
+                    
+            model = Matrix_Translate(plataforma.position.x, plataforma.position.y, plataforma.position.z);
+            glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+            glUniform1i(g_object_id_uniform, PLATFORM);
+            DrawVirtualObject("platform");
+        }
+
  
         // Desenhamos o personagem
 
@@ -950,7 +978,7 @@ int main(int argc, char* argv[])
             ClosedCompositeCubicBézierCurve path = generateClosedBezierCycle(passaro);
             
             model = prepareDrawBird(path, (glfwGetTime()*2.0f));
-            model = model * Matrix_Rotate_Y(3.14159265f); // Ajuste de orientação do modelo do pássaro
+            model = model * Matrix_Rotate_Y(M_PI); // Ajuste de orientação do modelo do pássaro
             glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
             glUniform1i(g_object_id_uniform, BIRD);
             DrawVirtualObject("achara_bird");
@@ -1045,8 +1073,9 @@ void LoadTextureImage(const char* filename)
     glSamplerParameteri(sampler_id, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
     // Parâmetros de amostragem da textura.
-    glSamplerParameteri(sampler_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glSamplerParameteri(sampler_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // Usando nearest neighbor por conta das texturas 16x16
+    glSamplerParameteri(sampler_id, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST); 
+    glSamplerParameteri(sampler_id, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     // Agora enviamos a imagem lida do disco para a GPU
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);

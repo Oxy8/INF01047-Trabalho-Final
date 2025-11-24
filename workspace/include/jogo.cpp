@@ -77,6 +77,7 @@ struct CubicBézierCurve {
         return p;
     }
 
+    // Gerado com Gemini (só a derivada)
     glm::vec4 derivative(float t) const {
         glm::vec4 q1 = 3.0f*(p2 - p1);
         glm::vec4 q2 = 3.0f*(p3 - p2);
@@ -135,7 +136,6 @@ glm::mat4 prepareDrawBird(ClosedCompositeCubicBézierCurve curve, float time) {
     return model;
 }
 
-
 // uniform Catmull–Rom modified
 ClosedCompositeCubicBézierCurve generateClosedBezierCycle(const std::vector<glm::vec4>& points) {
     
@@ -151,8 +151,8 @@ ClosedCompositeCubicBézierCurve generateClosedBezierCycle(const std::vector<glm
         CubicBézierCurve c;
 
         c.p1 = points[i];
-        c.p2 = points[i] + (points[next] - points[prev]) / 4.0f;
-        c.p3 = points[next] - (points[next_next] - points[i]) / 4.0f;
+        c.p2 = points[i] + ((points[next] - points[prev]) / 4.0f);
+        c.p3 = points[next] - ((points[next_next] - points[i]) / 4.0f);
         c.p4 = points[next];
 
         curves.push_back(c);
@@ -160,6 +160,46 @@ ClosedCompositeCubicBézierCurve generateClosedBezierCycle(const std::vector<glm
 
     return curves;
 }
+
+struct Plataforma {
+    glm::vec3 position;
+    glm::vec3 scale;
+    glm::vec3 bbox_min;
+    glm::vec3 bbox_max;
+    glm::vec3 bbox_min_original;
+    glm::vec3 bbox_max_original;
+
+    void setBboxOriginal(glm::vec3 min, glm::vec3 max) {
+        bbox_min_original = min; //- 2.0f;
+        bbox_max_original = max;
+    }
+
+    void atualizaBboxPlataforma() {
+        glm::vec3 scaled_min = bbox_min_original * scale;
+        glm::vec3 scaled_max = bbox_max_original * scale;
+
+        glm::vec3 real_min = glm::min(scaled_min, scaled_max);
+        glm::vec3 real_max = glm::max(scaled_min, scaled_max);
+
+        bbox_min = real_min + position;
+        bbox_max = real_max + position;
+    }
+
+
+};
+
+extern std::vector<Plataforma> plataformas = {
+    {glm::vec3(0.0, -1.0, 0.0), glm::vec3(1.0, 1.0, 1.0), glm::vec3(1.0, 1.0, 1.0), glm::vec3(1.0, 1.0, 1.0)},
+    {glm::vec3(10.0, 0.0, 20.0), glm::vec3(1.0, 1.0, 1.0), glm::vec3(1.0, 1.0, 1.0), glm::vec3(1.0, 1.0, 1.0)},
+    {glm::vec3(-12.0, 1.0, 20.0), glm::vec3(1.0, 1.0, 1.0), glm::vec3(1.0, 1.0, 1.0), glm::vec3(1.0, 1.0, 1.0)}
+};
+
+extern int n_plataformas = plataformas.size();
+
+
+
+
+
 
 
 GLuint LoadCubemap(const std::vector<std::string>& faces)

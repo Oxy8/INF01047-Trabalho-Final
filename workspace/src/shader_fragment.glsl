@@ -233,40 +233,56 @@ void main()
     else if(object_id == MARIO_HAIR){
         Kd = texture(TextureImage7, texcoords).rgb;
     }
-    else if ( object_id == PLATFORM )
+    else if (object_id == PLATFORM)
     {
-    
         vec4 abs_normal = abs(normal);
-        float lambert = max(0, n_dot_l);
-    
-        if (abs_normal.y >= abs_normal.x && abs_normal.y >= abs_normal.z) 
+
+        float minx = bbox_min.x;
+        float maxx = bbox_max.x;
+
+        float miny = bbox_min.y;
+        float maxy = bbox_max.y;
+
+        float minz = bbox_min.z;
+        float maxz = bbox_max.z;
+
+        float height = maxy - miny;
+
+        if (abs_normal.y >= abs_normal.x && abs_normal.y >= abs_normal.z)
         {
-            if (normal.y > 0.0) {
-                // Face de Cima (Topo)
-                Kd = texture(TextureImageGrass, vec2(position_model.x, position_model.z)).rgb;
-            } else {
-                // Face de Baixo (Fundo)
-                Kd =  texture(TextureImageDirt, vec2(position_model.x, position_model.z)).rgb;
+            // Normaliza
+            float U_top = (position_model.x - minx) / height;
+            float V_top = (position_model.z - minz) / height;
+
+            if (normal.y > 0.0)
+            {
+                // Topo
+                Kd = texture(TextureImageGrass, vec2(U_top, V_top)).rgb;
             }
-
+            else
+            {
+                // Fundo
+                Kd = texture(TextureImageDirt, vec2(U_top, V_top)).rgb;
+            }
         }
-
-        else{
-            float miny = bbox_min.y + 1.0f;
-            float maxy = bbox_max.y + 1.0f;
-
-            V = ((position_model.y - miny) / (maxy - miny));
+        else
+        {
+            // A gente normaliza com base na altura pra prevenir o esticamento da textura pros lados
+            V = (position_model.y - miny) / height;
 
             if (abs_normal.x >= abs_normal.z)
             {
-                Kd = texture(TextureImageGrassSide, vec2(position_model.z, V)).rgb;
+                U = (position_model.z - minz) / height;
             }
-            else{
-                Kd = texture(TextureImageGrassSide, vec2(position_model.x, V)).rgb;
+            else
+            {
+                U = (position_model.x - minx) / height;
             }
+            
+            Kd = texture(TextureImageGrassSide, vec2(U, V)).rgb;
         }
 
-        Ka = Kd/4;
+        Ka = Kd / 4.0;
     }
     else if  ( object_id == COGUMELO1 )
     {

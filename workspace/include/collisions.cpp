@@ -233,6 +233,7 @@ void resolve_collision_obb_aabb(
     const glm::vec3& platform_min,
     const glm::vec3& platform_max
 )
+
 {
     // 1. Detecção de Colisão
     CollisionResult colision = colision_obb_aabb(character_obb, platform_min, platform_max);
@@ -270,13 +271,16 @@ void resolve_collision_obb_aabb(
         }
 
     }
-    
+/*    
     else {
         // Se não houver colisão, o objeto não está no chão
         if(update_grounded_flag)
             grounded_flag = false;
         
     }
+*/
+
+
 }
 
 
@@ -312,11 +316,11 @@ CollisionResult collision_sphere_obb(
 
     
 
-   // printf("Closest local: %.2f %.2f %.2f\n", closest.x, closest.y, closest.z);
+    // printf("Closest local: %.2f %.2f %.2f\n", closest.x, closest.y, closest.z);
 
     // Agora com esse ponto da OBB mais próximo da esfera em coordenadas locais, voltamos para coordenadas globais
     glm::vec3 closestWorld = obb.center + obb.orientation * closest;
-   // printf("Closest world: %.2f %.2f %.2f\n", closestWorld.x, closestWorld.y, closestWorld.z);
+    // printf("Closest world: %.2f %.2f %.2f\n", closestWorld.x, closestWorld.y, closestWorld.z);
 
 
     // Agora podemos calcular a distância entre esse ponto e o centro da esfera em coordenadas globais e ver se é menor que o raio da esfera
@@ -332,9 +336,9 @@ CollisionResult collision_sphere_obb(
     result.contact_point = glm::vec3(0.0f);
 
 
-   // printf("Dist squared: %.2f, Radius squared: %.2f\n", dist_squared, sphere.radius * sphere.radius);
+    // printf("Dist squared: %.2f, Radius squared: %.2f\n", dist_squared, sphere.radius * sphere.radius);
 
-  // printf("Distance squared: %.6f, Radius squared: %.6f\n", dist_squared, sphere.radius * sphere.radius);
+    // printf("Distance squared: %.6f, Radius squared: %.6f\n", dist_squared, sphere.radius * sphere.radius);
     // Se a distância ao quadrado for menor que o raio, há colisão
     if(dist_squared < sphere.radius * sphere.radius) {
         float dist = sqrt(dist_squared);
@@ -398,9 +402,6 @@ CollisionResult collision_sphere_obb(
         }
         
        // printf("Collision normal: %.2f %.2f %.2f\n", normal.x, normal.y, normal.z);
-
-
-
 
         result.normal = normal;
         result.penetration = sphere.radius - dist;
