@@ -35,6 +35,7 @@ uniform mat4 projection;
 #define COGUMELO0 13
 #define COGUMELO1 14
 #define COGUMELO2 15
+#define FCG 16
 
 uniform int object_id;
 
@@ -110,7 +111,7 @@ void main()
     vec4 n = normalize(normal);
 
     // Vetor que define o sentido da fonte de luz em relação ao ponto atual.
-    vec4 l = normalize(vec4(1.0,1.0,0.0,0.0));
+    vec4 l = normalize(vec4(0.0,1.0,1.0,0.0));
 
     // Vetor que define o sentido da câmera em relação ao ponto atual.
     vec4 v = normalize(camera_position - p);
@@ -211,27 +212,35 @@ void main()
     }
     else if(object_id == MARIO_HAT){
         Kd = texture(TextureImage0, texcoords).rgb;
+        Ka = Kd / 3.0;
     }
     else if(object_id == MARIO_PANTS){
         Kd = texture(TextureImage1, texcoords).rgb;
+        Ka = Kd / 3.0;
     }
     else if(object_id == MARIO_FACE){
         Kd = texture(TextureImage2, texcoords).rgb;
+        Ka = Kd / 3.0;
     }    
     else if(object_id == MARIO_EYE){
         Kd = texture(TextureImage3, texcoords).rgb;
+        Ka = Kd / 3.0;
     }
     else if(object_id == MARIO_GLOVE){
         Kd = texture(TextureImage4, texcoords).rgb;
+        Ka = Kd / 3.0;
     }
     else if(object_id == MARIO_CLOTHES){
         Kd = texture(TextureImage5, texcoords).rgb;
+        Ka = Kd / 3.0;
     }
     else if(object_id == MARIO_SHOES){
         Kd = texture(TextureImage6, texcoords).rgb;
+        Ka = Kd / 3.0;
     }
     else if(object_id == MARIO_HAIR){
         Kd = texture(TextureImage7, texcoords).rgb;
+        Ka = Kd / 3.0;
     }
     else if (object_id == PLATFORM)
     {
@@ -282,12 +291,19 @@ void main()
             Kd = texture(TextureImageGrassSide, vec2(U, V)).rgb;
         }
 
-        Ka = Kd / 4.0;
+        Ka = Kd / 2.0;
     }
     else if  ( object_id == COGUMELO1 )
     {
        Kd = texture(TextureImageCogumelo, texcoords).rgb;
        Ka = Kd/2;
+    }
+    else if  ( object_id == FCG )
+    {
+        Kd = vec3(0.08, 0.4, 0.8);
+        Ks = vec3(0.8, 0.8, 0.8);
+        Ka = Kd/2;
+        q = 2;
     }
     else {
         Kd = vec3(0.08, 0.4, 0.8);

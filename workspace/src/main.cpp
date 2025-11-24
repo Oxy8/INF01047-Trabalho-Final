@@ -445,6 +445,10 @@ int main(int argc, char* argv[])
     ComputeNormals(&charactermodel);
     BuildTrianglesAndAddToVirtualScene(&charactermodel);
 
+    ObjModel fcgmodel("../../data/FCG.obj");
+    ComputeNormals(&fcgmodel);
+    BuildTrianglesAndAddToVirtualScene(&fcgmodel);
+
     ObjModel skyboxmodel("../../data/skybox.obj");
     ComputeNormals(&skyboxmodel);
     BuildTrianglesAndAddToVirtualScene(&skyboxmodel);
@@ -788,12 +792,7 @@ int main(int argc, char* argv[])
 
 
 
-        // eu não sei oq isso aqui faz , mas é distinto do que tava encima
-
-        OBB obb = createOBBFromAABB(g_VirtualScene["platform"].bbox_min,
-                                    g_VirtualScene["platform"].bbox_max);
-
-        camera_position_c = glm::vec4(resolve_collision_ray_obb(look, dir, desiredDist, obb, 0.05f), 1.0f);
+    
 
         // Abaixo definimos as varáveis que efetivamente definem a câmera virtual.
         // Veja slides 195-227 e 229-234 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
@@ -901,6 +900,7 @@ int main(int argc, char* argv[])
         #define COGUMELO0 13
         #define COGUMELO1 14
         #define COGUMELO2 15
+        #define FCG 16
 
 
 
@@ -1005,6 +1005,24 @@ int main(int argc, char* argv[])
             glUniform1i(g_object_id_uniform, COGUMELO2);
             DrawVirtualObject("best_face_Mesh");
         }
+
+
+        // Desenhamos o letreiro FCG phong e gouraurd (geramos os dois para comparar visualmente um com o outro)
+
+        model = Matrix_Translate(15, 4.2, 24)
+            * Matrix_Scale(1.2f, 1.2f, 1.2f)
+            * Matrix_Rotate_Y(glfwGetTime()/4.0);
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform, FCG);
+        DrawVirtualObject("TextFCG");
+
+
+        model = Matrix_Translate(8, 4.2, 24)
+            * Matrix_Scale(1.2f, 1.2f, 1.2f)
+            * Matrix_Rotate_Y(glfwGetTime()/4.0);
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform, FCG);
+        DrawVirtualObject("TextFCG");
 
 
 

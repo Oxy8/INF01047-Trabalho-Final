@@ -190,8 +190,10 @@ struct Plataforma {
 
 extern std::vector<Plataforma> plataformas = {
     {glm::vec3(0.0, -1.0, 0.0), glm::vec3(1.0, 1.0, 1.0), glm::vec3(1.0, 1.0, 1.0), glm::vec3(1.0, 1.0, 1.0)},
-    {glm::vec3(10.0, 0.0, 20.0), glm::vec3(1.0, 1.0, 1.0), glm::vec3(1.0, 1.0, 1.0), glm::vec3(1.0, 1.0, 1.0)},
-    {glm::vec3(-12.0, 1.0, 20.0), glm::vec3(1.0, 1.0, 1.0), glm::vec3(1.0, 1.0, 1.0), glm::vec3(1.0, 1.0, 1.0)}
+    {glm::vec3(14.0, 3.0, 24.0), glm::vec3(1.0, 1.0, 1.0), glm::vec3(1.0, 1.0, 1.0), glm::vec3(1.0, 1.0, 1.0)},
+    {glm::vec3(-12.0, 1.0, 20.0), glm::vec3(1.0, 1.0, 1.0), glm::vec3(1.0, 1.0, 1.0), glm::vec3(1.0, 1.0, 1.0)},
+    {glm::vec3(-2.0, 1.0, -20.0), glm::vec3(1.0, 1.0, 1.0), glm::vec3(1.0, 1.0, 1.0), glm::vec3(1.0, 1.0, 1.0)},
+    {glm::vec3(-8.0, 3.0, 30.0), glm::vec3(1.0, 1.0, 1.0), glm::vec3(1.0, 1.0, 1.0), glm::vec3(1.0, 1.0, 1.0)}
 };
 
 extern int n_plataformas = plataformas.size();
