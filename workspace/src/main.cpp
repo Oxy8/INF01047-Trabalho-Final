@@ -1007,7 +1007,7 @@ int main(int argc, char* argv[])
         }
 
 
-        // Desenhamos o letreiro FCG phong e gouraurd (geramos os dois para comparar visualmente um com o outro)
+        // Desenhamos o letreiro FCG phong e gouraud (geramos os dois para comparar visualmente um com o outro)
 
         model = Matrix_Translate(15, 4.2, 24)
             * Matrix_Scale(1.2f, 1.2f, 1.2f)
@@ -1016,12 +1016,15 @@ int main(int argc, char* argv[])
         glUniform1i(g_object_id_uniform, FCG);
         DrawVirtualObject("TextFCG");
 
+        glUseProgram(g_GpuProgramID_gouraud);
+        glUniformMatrix4fv(g_view_uniform_gouraud , 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(g_projection_uniform_gouraud, 1, GL_FALSE, glm::value_ptr(projection));
 
         model = Matrix_Translate(8, 4.2, 24)
             * Matrix_Scale(1.2f, 1.2f, 1.2f)
             * Matrix_Rotate_Y(glfwGetTime()/4.0);
-        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
-        glUniform1i(g_object_id_uniform, FCG);
+        glUniformMatrix4fv(g_model_uniform_gouraud , 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform_gouraud, FCG);
         DrawVirtualObject("TextFCG");
 
 
@@ -1172,8 +1175,8 @@ void LoadShadersFromFiles()
     GLuint vertex_shader_id = LoadShader_Vertex("../../src/shader_vertex.glsl");
     GLuint fragment_shader_id = LoadShader_Fragment("../../src/shader_fragment.glsl");
 
-    //GLuint vertex_shader_gouraud_id = LoadShader_Vertex("../../src/shader_vertex_gouraud.glsl");
-    //GLuint fragment_shader_gouraud_id = LoadShader_Fragment("../../src/shader_fragment_gouraud.glsl");
+    GLuint vertex_shader_gouraud_id = LoadShader_Vertex("../../src/shader_vertex_gouraud.glsl");
+    GLuint fragment_shader_gouraud_id = LoadShader_Fragment("../../src/shader_fragment_gouraud.glsl");
 
     // Novos caminhos para os shaders do Skybox
     GLuint vertex_shader_skybox_id = LoadShader_Vertex("../../src/shader_vertex_skybox.glsl");
@@ -1206,7 +1209,7 @@ void LoadShadersFromFiles()
     // ###############################
 
     // Criamos um programa de GPU utilizando os shaders carregados acima.
-    //g_GpuProgramID_gouraud = CreateGpuProgram(vertex_shader_gouraud_id, fragment_shader_gouraud_id);
+    g_GpuProgramID_gouraud = CreateGpuProgram(vertex_shader_gouraud_id, fragment_shader_gouraud_id);
 
     // Buscamos o endereço das variáveis definidas dentro do Vertex Shader.
     // Utilizaremos estas variáveis para enviar dados para a placa de vídeo
@@ -1215,11 +1218,9 @@ void LoadShadersFromFiles()
     g_view_uniform_gouraud       = glGetUniformLocation(g_GpuProgramID_gouraud, "view"); // Variável da matriz "view" em shader_vertex.glsl
     g_projection_uniform_gouraud = glGetUniformLocation(g_GpuProgramID_gouraud, "projection"); // Variável da matriz "projection" em shader_vertex.glsl
     g_object_id_uniform_gouraud  = glGetUniformLocation(g_GpuProgramID_gouraud, "object_id"); // Variável "object_id" em shader_fragment.glsl
-    g_bbox_min_uniform_gouraud   = glGetUniformLocation(g_GpuProgramID_gouraud, "bbox_min");
-    g_bbox_max_uniform_gouraud   = glGetUniformLocation(g_GpuProgramID_gouraud, "bbox_max");
 
     // Variáveis em "shader_fragment.glsl" para acesso das imagens de textura
-    glUseProgram(g_GpuProgramID);
+    glUseProgram(g_GpuProgramID_gouraud);
 
     
     // Phong
