@@ -286,7 +286,7 @@ struct Sphere {
 };
 
 extern const float raio_colisao_cogumelo = 1.5;
-extern const float raio_colisao_bird = 1.5;
+extern const float raio_colisao_bird = 0.5;
 
 bool collision_sphere_sphere(Sphere& s1, Sphere& s2) {
     float threshold = s1.radius + s2.radius;

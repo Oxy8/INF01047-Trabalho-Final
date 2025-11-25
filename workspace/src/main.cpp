@@ -494,6 +494,8 @@ int main(int argc, char* argv[])
 
     glm::vec4 last_horizontal_velocity = {0.0f,0.0f,0.0f,0.0f};
 
+    float tempo_exec_total = 0; // para mostrar ao fim do jogo.
+
     // Ficamos em um loop infinito, renderizando, até que o usuário feche a janela
     while (!glfwWindowShouldClose(window))
     {
@@ -793,6 +795,9 @@ int main(int argc, char* argv[])
                 esfera_passaro.center.y += 2*raio_colisao_cogumelo;
                 if (collision_sphere_sphere(esfera_cogu, esfera_passaro)) {
                     printf("colisao passaro\n");
+                    passaros.erase(passaros.begin() + j);
+                    n_passaros -= 1;
+                    n_passaros_atingidos += 1;
                 }
             }
 
@@ -1036,6 +1041,26 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(g_model_uniform_gouraud , 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform_gouraud, FCG);
         DrawVirtualObject("TextFCG");
+
+
+        if (n_passaros == 0 & n_passaros_atingidos >= 1) {
+            
+            float lineheight = TextRendering_LineHeight(window) * 2.0f;
+            float charwidth = TextRendering_CharWidth(window) * 2.0f;
+
+            int numchars1 = 12;
+
+            std::string tempo_texto = "Tempo final: " + std::to_string(tempo_exec_total);
+
+            int numchars2 = tempo_texto.size();
+
+            TextRendering_PrintString(window, "FIM DO JOGO", 0.0f-(numchars1 + 1)*charwidth/2.0f, 0.1f-lineheight/2.0f, 2.0f);
+            TextRendering_PrintString(window, tempo_texto, 0.0f-(numchars2 + 1)*charwidth/2.0f, -0.1f-lineheight/2.0f, 2.0f);
+
+            
+        } else {
+            tempo_exec_total = glfwGetTime();
+        }
 
 
 
