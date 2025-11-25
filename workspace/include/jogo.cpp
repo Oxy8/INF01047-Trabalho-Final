@@ -201,6 +201,18 @@ extern int n_plataformas = plataformas.size();
 
 
 
+struct Cogumelo {
+    float timeAlive;
+    glm::vec4 position;
+    glm::vec4 speedVec;
+};
+
+extern const float maxTimeAliveCogu = 4;
+
+extern std::vector<Cogumelo> lista_cogumelos = {};
+// Quando usuário clica com botão esquerdo do mouse, um projétil novo é adicionado à lista.
+// A cada frame, iteramos toda a lista, atualiza timeAlive, e ve se algum dos cogumelos excedeu o limite de tempo.
+
 
 
 

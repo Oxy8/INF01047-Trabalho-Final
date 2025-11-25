@@ -58,10 +58,10 @@ void main()
     float q; // Expoente especular para o modelo de iluminação de Phong
 
 
-    Kd = vec3(0.08, 0.4, 0.8);
+    Kd = vec3(0.8, 0.2, 0.3);
     Ks = vec3(0.8, 0.8, 0.8);
-    Ka = Kd/2;
-    q = 2;
+    Ka = Kd/2.0;
+    q = 64.0;
     
 
 

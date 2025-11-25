@@ -291,24 +291,26 @@ void main()
             Kd = texture(TextureImageGrassSide, vec2(U, V)).rgb;
         }
 
+        Ks = Kd / 8.0;
         Ka = Kd / 2.0;
+        q = 8.0;
     }
     else if  ( object_id == COGUMELO1 )
     {
        Kd = texture(TextureImageCogumelo, texcoords).rgb;
-       Ka = Kd/2;
+       Ka = Kd/2.0;
     }
     else if  ( object_id == FCG )
     {
-        Kd = vec3(0.08, 0.4, 0.8);
+        Kd = vec3(0.8, 0.2, 0.3);
         Ks = vec3(0.8, 0.8, 0.8);
-        Ka = Kd/2;
-        q = 2;
+        Ka = Kd/2.0;
+        q = 64.0;
     }
     else {
         Kd = vec3(0.08, 0.4, 0.8);
         Ks = vec3(0.8, 0.8, 0.8);
-        Ka = Kd/2;
+        Ka = Kd/2.0;
         q = 32.0;
     }
 

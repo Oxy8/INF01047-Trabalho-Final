@@ -295,21 +295,6 @@ GLint g_skybox_projection_uniform = -1;
 // Número de texturas carregadas pela função LoadTextureImage()
 GLuint g_NumLoadedTextures = 0;
 
-// =#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#
-// Declaração global dos projéteis (cogumelos)
-// =#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#
-
-struct Cogumelo {
-    float timeAlive;
-    glm::vec4 position;
-    glm::vec4 speedVec;
-};
-
-const float maxTimeAliveCogu = 4;
-
-std::vector<Cogumelo> lista_cogumelos = {};
-// Quando usuário clica com botão esquerdo do mouse, um projétil novo é adicionado a lista.
-// A cada frame, iteramos toda a lista, atualiza timeAlive, e ve se algum dos cogumelos excedeu o limite de tempo.
 
 float leftClickHoldTime = 0.0;
 bool mouseWasPressedLastFrame = false;
@@ -540,6 +525,7 @@ int main(int argc, char* argv[])
         // ======================================================
         // ATUALIZAÇÃO DA CÂMERA
         // ======================================================
+        
 
         // Computamos a posição da câmera utilizando coordenadas esféricas.  As
         // variáveis g_CameraDistance, g_CameraPhi, e g_CameraTheta são
@@ -703,10 +689,10 @@ int main(int argc, char* argv[])
             character_velocity.y = 0.0f;
         }
 
-        printf("Character velocity Y: %f\n", character_velocity.y);
+        //printf("Character velocity Y: %f\n", character_velocity.y);
         character_position_c += character_velocity * delta_time;
 
-        printf("Character position Y before collision: %f\n", character_position_c.y);
+        //printf("Character position Y before collision: %f\n", character_position_c.y);
 
     
         
@@ -725,8 +711,8 @@ int main(int argc, char* argv[])
 
         grounded = grounded_curr;
 
-        printf("Character position Y after collision: %f\n", character_position_c.y);
-        printf("Grounded: %d\n", grounded);
+        //printf("Character position Y after collision: %f\n", character_position_c.y);
+        //printf("Grounded: %d\n", grounded);
 
         
         if (colision_with_void(character_position_c.y)) {
@@ -739,7 +725,6 @@ int main(int argc, char* argv[])
             character_velocity.y = 10.0f;
         }
 
-        // =#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#
         // Projéteis
         // =#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#
 
@@ -753,6 +738,8 @@ int main(int argc, char* argv[])
             float speed_factor = std::min(leftClickHoldTime, 2.5f);
             glm::vec4 speed_vec = camera_view_vector * std::max(leftClickHoldTime*30, 12.0f);
             Cogumelo projetil = {0.0, character_position_c, speed_vec};
+            
+            projetil.position.y += 4.0;
             
             lista_cogumelos.push_back(projetil);
 
@@ -785,17 +772,37 @@ int main(int argc, char* argv[])
             // Aqui += porque gravity é negativo
             lista_cogumelos[i].speedVec.y += gravity * delta_time;
 
+            lista_cogumelos[i].speedVec = lista_cogumelos[i].speedVec * 0.996f;
+
             lista_cogumelos[i].position += lista_cogumelos[i].speedVec * delta_time;
         }
-        printf("n_cogus: %d \n", n_cogus);
 
 
-
-
+        // Verifica colisões entre projéteis e pássaro e projéteis e plataforma.
     
+        for(int i = 0; i < lista_cogumelos.size(); i++){
+            
+            Cogumelo cogu = lista_cogumelos[i];
+            Sphere esfera_cogu = Sphere{cogu.position, raio_colisao_cogumelo};
+            esfera_cogu.center.y += raio_colisao_cogumelo;
+            
+            // passaros
+            for (int j = 0; j < n_passaros; j++) {
+                ClosedCompositeCubicBézierCurve passaro = generateClosedBezierCycle(passaros[j]);
+                Sphere esfera_passaro = Sphere{birdPosition(passaro, glfwGetTime()*2.0), raio_colisao_bird};
+                esfera_passaro.center.y += 2*raio_colisao_cogumelo;
+                if (collision_sphere_sphere(esfera_cogu, esfera_passaro)) {
+                    printf("colisao passaro\n");
+                }
+            }
 
-        // Abaixo definimos as varáveis que efetivamente definem a câmera virtual.
-        // Veja slides 195-227 e 229-234 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
+            // plataformas
+            for (int j = 0; j < n_plataformas; j++) {
+                lista_cogumelos[i].speedVec = resolveCollisionSphereAABB(lista_cogumelos[i].speedVec, esfera_cogu, plataformas[j].bbox_min, plataformas[j].bbox_max);
+            }
+        }
+
+
 
         // Computamos a matriz "View" utilizando os parâmetros da câmera para
         // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
@@ -989,7 +996,7 @@ int main(int argc, char* argv[])
 
             glm::vec4 cogumelo = lista_cogumelos[i].position;
 
-            model = Matrix_Translate(cogumelo.x, cogumelo.y+4.0, cogumelo.z)
+            model = Matrix_Translate(cogumelo.x, cogumelo.y, cogumelo.z)
                 * Matrix_Scale(0.2f, 0.2f, 0.2f)
                 * Matrix_Rotate_Y(3.0*glfwGetTime());
 
@@ -1009,19 +1016,22 @@ int main(int argc, char* argv[])
 
         // Desenhamos o letreiro FCG phong e gouraud (geramos os dois para comparar visualmente um com o outro)
 
+        // Phong
         model = Matrix_Translate(15, 4.2, 24)
-            * Matrix_Scale(1.2f, 1.2f, 1.2f)
+            * Matrix_Scale(2.2f, 2.2f, 2.2f)
             * Matrix_Rotate_Y(glfwGetTime()/4.0);
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, FCG);
         DrawVirtualObject("TextFCG");
 
+
+        // Gouraud
         glUseProgram(g_GpuProgramID_gouraud);
         glUniformMatrix4fv(g_view_uniform_gouraud , 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(g_projection_uniform_gouraud, 1, GL_FALSE, glm::value_ptr(projection));
 
         model = Matrix_Translate(8, 4.2, 24)
-            * Matrix_Scale(1.2f, 1.2f, 1.2f)
+            * Matrix_Scale(2.2f, 2.2f, 2.2f)
             * Matrix_Rotate_Y(glfwGetTime()/4.0);
         glUniformMatrix4fv(g_model_uniform_gouraud , 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform_gouraud, FCG);
