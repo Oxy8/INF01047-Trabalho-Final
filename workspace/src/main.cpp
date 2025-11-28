@@ -392,7 +392,7 @@ int main(int argc, char* argv[])
     LoadTextureImage("../../data/bottom.png"); // TextureImageDirt
     LoadTextureImage("../../data/mushroom-sharp.png"); // TextureImageCogumelo
     LoadTextureImage("../../data/Tiles_070_basecolor.png"); // TextureImageBird
-    //LoadTextureImage("../../data/Tiles_070_basecolor.png"); // TextureImageLetreiro
+    LoadTextureImage("../../data/grass_sides.png"); // TextureImageLetreiro
 
 
     
@@ -872,9 +872,9 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(g_skybox_view_uniform, 1, GL_FALSE, glm::value_ptr(view_skybox));
         glUniformMatrix4fv(g_skybox_projection_uniform, 1, GL_FALSE, glm::value_ptr(projection));
 
-        glActiveTexture(GL_TEXTURE13);
+        glActiveTexture(GL_TEXTURE14);
         glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTextureID);
-        glUniform1i(glGetUniformLocation(g_SkyboxProgramID, "skybox"), 13);
+        glUniform1i(glGetUniformLocation(g_SkyboxProgramID, "skybox"), 14);
 
         DrawVirtualObject("Skybox");
 
@@ -1239,8 +1239,8 @@ void LoadShadersFromFiles()
     
     // Configura a unidade de textura do Cubemap.
     glUseProgram(g_SkyboxProgramID);
-    // skybox é o nome que usamos no Fragment Shader. Ele usará a unidade 13 neste caso.
-    glUniform1i(glGetUniformLocation(g_SkyboxProgramID, "skybox"), 13);
+    // skybox é o nome que usamos no Fragment Shader. Ele usará a unidade 14 neste caso.
+    glUniform1i(glGetUniformLocation(g_SkyboxProgramID, "skybox"), 14);
     
 
     // Gouraud
