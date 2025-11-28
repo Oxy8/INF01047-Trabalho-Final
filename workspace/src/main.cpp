@@ -391,6 +391,9 @@ int main(int argc, char* argv[])
     LoadTextureImage("../../data/side.png"); // TextureImageGrassSide
     LoadTextureImage("../../data/bottom.png"); // TextureImageDirt
     LoadTextureImage("../../data/mushroom-sharp.png"); // TextureImageCogumelo
+    LoadTextureImage("../../data/Tiles_070_basecolor.png"); // TextureImageBird
+    //LoadTextureImage("../../data/Tiles_070_basecolor.png"); // TextureImageLetreiro
+
 
     
     std::vector<std::string> skyboxFaces = {
@@ -1288,9 +1291,8 @@ void LoadShadersFromFiles()
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImageGrassSide"), 9);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImageDirt"), 10);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImageCogumelo"), 11);
-    // glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImageBlueBird"), 12);
-
-
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImageBird"), 12);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImageLetreiro"), 13);
 
     glUseProgram(0);
 }

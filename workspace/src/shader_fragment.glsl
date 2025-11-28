@@ -81,8 +81,11 @@ uniform sampler2D TextureImageDirt;
 // Cogumelo
 uniform sampler2D TextureImageCogumelo;
 
-// Blue Bird 
-//uniform sampler2D TextureImageBlueBird;
+// Bird 
+uniform sampler2D TextureImageBird;
+
+// letreiro
+uniform sampler2D TextureImageLetreiro;
 
 
 // O valor de saída ("out") de um Fragment Shader é a cor final do fragmento.
@@ -191,10 +194,27 @@ void main()
     }
     else if ( object_id == BIRD )
     {
-        Kd = vec3(0.4, 0.4, 0.8);
+        vec4 bbox_center = (bbox_min + bbox_max) / 2.0;
+
+        vec4 diff = (bbox_max - bbox_min);
+
+        // w=1.0 pq vamos usar pra dividir depois. Não tem sentido nenhum por si só isso aqui.
+        vec4 bbox_size = vec4(diff.x, diff.y, diff.z, 1.0);
+
+        float ro = length(position_model - bbox_center);
+
+        vec4 p_vec = (position_model - bbox_center) / bbox_size;
+
+        float theta = atan(p_vec.x, p_vec.z); 
+        float phi = asin(p_vec.y/ro);
+
+        U = (theta + M_PI) / (2 * M_PI);
+        V = (phi + M_PI_2) / M_PI;
+
+        Kd = texture(TextureImageBird, vec2(U,V)).rgb;
         Ks = vec3(0.8, 0.8, 0.8);
-        Ka = Kd/2;
-        q = 32.0;
+        Ka = Kd/2.0;
+        q = 64.0;
     }
     else if  ( object_id == COGUMELO0 )
     {
@@ -302,10 +322,29 @@ void main()
     }
     else if  ( object_id == FCG )
     {
-        Kd = vec3(0.8, 0.2, 0.3);
+
+        vec4 bbox_center = (bbox_min + bbox_max) / 2.0;
+
+        vec4 diff = (bbox_max - bbox_min);
+
+        // w=1.0 pq vamos usar pra dividir depois. Não tem sentido nenhum por si só isso aqui.
+        vec4 bbox_size = vec4(diff.x, diff.y, diff.z, 1.0);
+
+        float ro = length(position_model - bbox_center);
+
+        vec4 p_vec = (position_model - bbox_center) / bbox_size;
+
+        float theta = atan(p_vec.x, p_vec.z); 
+        float phi = asin(p_vec.y/ro);
+
+        U = (theta + M_PI) / (2 * M_PI);
+        V = (phi + M_PI_2) / M_PI;
+
+        Kd = texture(TextureImageLetreiro, vec2(U,V)).rgb;
         Ks = vec3(0.8, 0.8, 0.8);
         Ka = Kd/2.0;
         q = 64.0;
+
     }
     else {
         Kd = vec3(0.08, 0.4, 0.8);
