@@ -32,6 +32,117 @@
 #include "utils.h"
 #include "matrices.h"
 
+
+std::vector<std::vector<glm::vec4>> inicializaPassaros() {
+    std::vector<std::vector<glm::vec4>> passaros = {
+            
+    {
+        glm::vec4(6.0f + 2.5f * cos(0.0f),                 2.0f, 3.5f + 2.5f * sin(0.0f),        1.0f),
+        glm::vec4(6.0f + 2.5f * cos(glm::radians(45.0f)),  2.5f, 3.5f + 2.5f * sin(glm::radians(45.0f)), 1.0f),
+        glm::vec4(6.0f + 2.5f * cos(glm::radians(90.0f)),  2.8f, 3.5f + 2.5f * sin(glm::radians(90.0f)), 1.0f),
+        glm::vec4(6.0f + 2.5f * cos(glm::radians(135.0f)), 3.0f, 3.5f + 2.5f * sin(glm::radians(135.0f)), 1.0f),
+        glm::vec4(6.0f + 2.5f * cos(glm::radians(180.0f)), 2.7f, 3.5f + 2.5f * sin(glm::radians(180.0f)), 1.0f),
+        glm::vec4(6.0f + 2.5f * cos(glm::radians(225.0f)), 2.4f, 3.5f + 2.5f * sin(glm::radians(225.0f)), 1.0f),
+        glm::vec4(6.0f + 2.5f * cos(glm::radians(270.0f)), 2.0f, 3.5f + 2.5f * sin(glm::radians(270.0f)), 1.0f),
+        glm::vec4(6.0f + 2.5f * cos(glm::radians(315.0f)), 1.9f, 3.5f + 2.5f * sin(glm::radians(315.0f)), 1.0f)
+    },
+    {
+        glm::vec4(-3.6f, 10.0f + 2.5f, 20.0f + -6.0f, 1.0f),
+        glm::vec4(0.0f, 10.0f + 2.5f, 20.0f + -7.0f, 1.0f),
+        glm::vec4(3.6f, 10.0f + 2.5f, 20.0f + -6.0f, 1.0f),
+        glm::vec4(4.2f, 10.0f + 2.5f, 20.0f + 0.0f, 1.0f),
+        glm::vec4(3.6f, 10.0f + 2.5f, 20.0f + 6.0f, 1.0f),
+        glm::vec4(0.0f, 10.0f + 2.5f, 20.0f + 7.0f, 1.0f),
+        glm::vec4(-3.6f, 10.0f + 2.5f, 20.0f + 6.0f, 1.0f),
+        glm::vec4(-4.2f, 10.0f + 2.5f, 20.0f + 0.0f, 1.0f),
+    },
+    {
+        glm::vec4(10.0f * cos(0.0f),                 8.0f, 10.0f * sin(0.0f),                 1.0f),
+        glm::vec4(10.0f * cos(glm::radians(45.0f)),  8.0f, 10.0f * sin(glm::radians(45.0f)),  1.0f),
+        glm::vec4(10.0f * cos(glm::radians(90.0f)),  8.0f, 10.0f * sin(glm::radians(90.0f)),  1.0f),
+        glm::vec4(10.0f * cos(glm::radians(135.0f)), 8.0f, 10.0f * sin(glm::radians(135.0f)), 1.0f),
+        glm::vec4(10.0f * cos(glm::radians(180.0f)), 8.0f, 10.0f * sin(glm::radians(180.0f)), 1.0f),
+        glm::vec4(10.0f * cos(glm::radians(225.0f)), 8.0f, 10.0f * sin(glm::radians(225.0f)), 1.0f),
+        glm::vec4(10.0f * cos(glm::radians(270.0f)), 8.0f, 10.0f * sin(glm::radians(270.0f)), 1.0f),
+        glm::vec4(10.0f * cos(glm::radians(315.0f)), 8.0f, 10.0f * sin(glm::radians(315.0f)), 1.0f)
+    },
+    {
+        glm::vec4(-5.0f + 3.0f * cos(0.0f),                 10.0f + 1.5f, -19.0f + 2.0f * sin(0.0f),        1.0f),
+        glm::vec4(-5.0f + 3.0f * cos(glm::radians(45.0f)),  10.0f + 1.8f, -19.0f + 2.0f * sin(glm::radians(45.0f)), 1.0f),
+        glm::vec4(-5.0f + 3.0f * cos(glm::radians(90.0f)),  10.0f + 1.5f, -19.0f + 2.0f * sin(glm::radians(90.0f)), 1.0f),
+        glm::vec4(-5.0f + 3.0f * cos(glm::radians(135.0f)), 10.0f + 1.2f, -19.0f + 2.0f * sin(glm::radians(135.0f)), 1.0f),
+        glm::vec4(-5.0f + 3.0f * cos(glm::radians(180.0f)), 10.0f + 1.5f, -19.0f + 2.0f * sin(glm::radians(180.0f)), 1.0f),
+        glm::vec4(-5.0f + 3.0f * cos(glm::radians(225.0f)), 10.0f + 1.8f, -19.0f + 2.0f * sin(glm::radians(225.0f)), 1.0f),
+        glm::vec4(-5.0f + 3.0f * cos(glm::radians(270.0f)), 10.0f + 1.5f, -19.0f + 2.0f * sin(glm::radians(270.0f)), 1.0f),
+        glm::vec4(-5.0f + 3.0f * cos(glm::radians(315.0f)), 10.0f + 1.2f, -19.0f + 2.0f * sin(glm::radians(315.0f)), 1.0f)
+    },
+    {
+        glm::vec4(0.0f + 4.0f * cos(0.0f),                 4.0f + 2.0f * sin(0.0f),                 0.0f + 4.0f * sin(0.0f),        1.0f),
+        glm::vec4(0.0f + 4.0f * cos(glm::radians(45.0f)),  4.0f + 2.0f * sin(glm::radians(90.0f)),  0.0f + 4.0f * sin(glm::radians(45.0f)), 1.0f),
+        glm::vec4(0.0f + 4.0f * cos(glm::radians(90.0f)),  4.0f + 2.0f * sin(glm::radians(180.0f)), 0.0f + 4.0f * sin(glm::radians(90.0f)), 1.0f),
+        glm::vec4(0.0f + 4.0f * cos(glm::radians(135.0f)), 4.0f + 2.0f * sin(glm::radians(270.0f)), 0.0f + 4.0f * sin(glm::radians(135.0f)), 1.0f),
+        glm::vec4(0.0f + 4.0f * cos(glm::radians(180.0f)), 4.0f + 2.0f * sin(glm::radians(0.0f)),   0.0f + 4.0f * sin(glm::radians(180.0f)), 1.0f),
+        glm::vec4(0.0f + 4.0f * cos(glm::radians(225.0f)), 4.0f + 2.0f * sin(glm::radians(90.0f)),  0.0f + 4.0f * sin(glm::radians(225.0f)), 1.0f),
+        glm::vec4(0.0f + 4.0f * cos(glm::radians(270.0f)), 4.0f + 2.0f * sin(glm::radians(180.0f)), 0.0f + 4.0f * sin(glm::radians(270.0f)), 1.0f),
+        glm::vec4(0.0f + 4.0f * cos(glm::radians(315.0f)), 4.0f + 2.0f * sin(glm::radians(270.0f)), 0.0f + 4.0f * sin(glm::radians(315.0f)), 1.0f)
+    },
+    {
+        glm::vec4(9.0f * cos(0.0f),                 1.0f, 9.0f * sin(0.0f),                 1.0f),
+        glm::vec4(9.0f * cos(glm::radians(45.0f)),  1.2f, 9.0f * sin(glm::radians(45.0f)),  1.0f),
+        glm::vec4(9.0f * cos(glm::radians(90.0f)),  1.0f, 9.0f * sin(glm::radians(90.0f)),  1.0f),
+        glm::vec4(9.0f * cos(glm::radians(135.0f)), 0.8f, 9.0f * sin(glm::radians(135.0f)), 1.0f),
+        glm::vec4(9.0f * cos(glm::radians(180.0f)), 1.0f, 9.0f * sin(glm::radians(180.0f)), 1.0f),
+        glm::vec4(9.0f * cos(glm::radians(225.0f)), 1.2f, 9.0f * sin(glm::radians(225.0f)), 1.0f),
+        glm::vec4(9.0f * cos(glm::radians(270.0f)), 1.0f, 9.0f * sin(glm::radians(270.0f)), 1.0f),
+        glm::vec4(9.0f * cos(glm::radians(315.0f)), 0.8f, 9.0f * sin(glm::radians(315.0f)), 1.0f)
+    },
+    {
+        glm::vec4(3.0f * cos(0.0f),                 12.0f, 20.0f + 3.0f * sin(0.0f),                 1.0f),
+        glm::vec4(3.0f * cos(glm::radians(45.0f)),  12.0f, 20.0f + 3.0f * sin(glm::radians(45.0f)),  1.0f),
+        glm::vec4(3.0f * cos(glm::radians(90.0f)),  12.0f, 20.0f + 3.0f * sin(glm::radians(90.0f)),  1.0f),
+        glm::vec4(3.0f * cos(glm::radians(135.0f)), 12.0f, 20.0f + 3.0f * sin(glm::radians(135.0f)), 1.0f),
+        glm::vec4(3.0f * cos(glm::radians(180.0f)), 12.0f, 20.0f + 3.0f * sin(glm::radians(180.0f)), 1.0f),
+        glm::vec4(3.0f * cos(glm::radians(225.0f)), 12.0f, 20.0f + 3.0f * sin(glm::radians(225.0f)), 1.0f),
+        glm::vec4(3.0f * cos(glm::radians(270.0f)), 12.0f, 20.0f + 3.0f * sin(glm::radians(270.0f)), 1.0f),
+        glm::vec4(3.0f * cos(glm::radians(315.0f)), 12.0f, 20.0f + 3.0f * sin(glm::radians(315.0f)), 1.0f)
+    },
+    {
+        glm::vec4(-5.0f, 20.0f + 2.0f, 20.0f + -5.0f, 1.0f), 
+        glm::vec4(-3.0f, 20.0f + 3.0f, 20.0f + -3.0f, 1.0f),
+        glm::vec4(0.0f,  20.0f + 4.0f, 20.0f +  0.0f, 1.0f), 
+        glm::vec4(3.0f,  20.0f + 3.0f, 20.0f +  3.0f, 1.0f),
+        glm::vec4(5.0f,  20.0f + 2.0f, 20.0f +  5.0f, 1.0f), 
+        glm::vec4(3.0f,  20.0f + 1.0f, 20.0f +  3.0f, 1.0f),
+        glm::vec4(0.0f,  20.0f + 0.5f, 20.0f +  0.0f, 1.0f), 
+        glm::vec4(-3.0f, 20.0f + 1.0f, 20.0f + -3.0f, 1.0f)
+    },
+    {
+        glm::vec4(32.0f, 12.0f + 15.0f, 12.0f + 28.0f,  1.0f),
+        glm::vec4(31.0f, 12.0f + 15.2f, 12.0f + 24.0f,  1.0f),
+        glm::vec4(32.0f, 12.0f + 15.0f, 12.0f + 20.0f,  1.0f),
+        glm::vec4(33.0f, 12.0f + 14.8f, 12.0f + 14.0f, 1.0f),
+        glm::vec4(32.0f, 12.0f + 15.0f, 12.0f + 12.0f, 1.0f),
+        glm::vec4(31.0f, 12.0f + 15.2f, 12.0f + 12.0f, 1.0f),
+        glm::vec4(32.0f, 12.0f + 15.0f, 12.0f + 20.0f,  1.0f),
+        glm::vec4(33.0f, 12.0f + 14.8f, 12.0f + 24.0f,  1.0f)
+    },
+    {
+        glm::vec4(-16.0f + 3.0f * cos(0.0f),                 13.0f, 30.0f + 3.0f * sin(0.0f),                 1.0f),
+        glm::vec4(-16.0f + 3.0f * cos(glm::radians(315.0f)), 13.2f, 30.0f + 3.0f * sin(glm::radians(315.0f)), 1.0f),
+        glm::vec4(-16.0f + 3.0f * cos(glm::radians(270.0f)), 13.5f, 30.0f + 3.0f * sin(glm::radians(270.0f)), 1.0f),
+        glm::vec4(-16.0f + 3.0f * cos(glm::radians(225.0f)), 13.2f, 30.0f + 3.0f * sin(glm::radians(225.0f)), 1.0f),
+        glm::vec4(-16.0f + 3.0f * cos(glm::radians(180.0f)), 13.0f, 30.0f + 3.0f * sin(glm::radians(180.0f)), 1.0f),
+        glm::vec4(-16.0f + 3.0f * cos(glm::radians(135.0f)), 12.8f, 30.0f + 3.0f * sin(glm::radians(135.0f)), 1.0f),
+        glm::vec4(-16.0f + 3.0f * cos(glm::radians(90.0f)),  12.5f, 30.0f + 3.0f * sin(glm::radians(90.0f)),  1.0f),
+        glm::vec4(-16.0f + 3.0f * cos(glm::radians(45.0f)),  12.8f, 30.0f + 3.0f * sin(glm::radians(45.0f)),  1.0f)
+    }
+};
+
+    return passaros;
+
+
+}
+
 extern std::vector<std::vector<glm::vec4>> passaros = {
     {
         glm::vec4(6.0f + 2.5f * cos(0.0f),                 2.0f, 3.5f + 2.5f * sin(0.0f),        1.0f),

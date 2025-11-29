@@ -34,12 +34,6 @@ void updateOBB(OBB& obb, const glm::mat4& model, const glm::vec3& initial_center
 
     // Atualiza half-sizes (apenas escala afeta o tamanho)
     obb.half_sizes = initial_half_sizes * scale;
-
-
-    //printf("Model[0] : %.2f %.2f %.2f %.2f\n", model[0][0], model[0][1], model[0][2], model[0][3]);
-    //printf("Model[1] : %.2f %.2f %.2f %.2f\n", model[1][0], model[1][1], model[1][2], model[1][3]);
-    //printf("Model[2] : %.2f %.2f %.2f %.2f\n", model[2][0], model[2][1], model[2][2], model[2][3]);
-    //printf("Model[3] : %.2f %.2f %.2f %.2f\n", model[3][0], model[3][1], model[3][2], model[3][3]);     
 }
 
 
@@ -212,72 +206,49 @@ CollisionResult colision_obb_aabb(const OBB& obb, const glm::vec3& aabb_min, con
 
 
 
-void resolve_collision_obb_aabb(
-    glm::vec4& character_pos,
-    glm::vec4& character_vel,
-    bool& grounded_flag,
-    bool update_grounded_flag,
-    const OBB& character_obb,
-    const glm::vec3& platform_min,
-    const glm::vec3& platform_max
-)
+void resolve_collision_obb_obb(
+    glm::vec4& obj_pos,                 // posição do objeto que se move
+    glm::vec4& obj_vel,                 // velocidade do objeto
+    bool& grounded_flag,                // flag de "no chão"
+    bool update_grounded_flag,          // deve atualizar grounded_flag?
+    const OBB& moving_obb,              // OBB atual do objeto
+    const OBB& target_obb,               // OBB alvo (se for OBB)
+    glm::vec3 last_y_pos               // última posição Y antes da colisão (para corrigir "afundamento")
+) {
+    CollisionResult collision;
 
-{
-    // 1. Detecção de Colisão
-    CollisionResult colision = colision_obb_aabb(character_obb, platform_min, platform_max);
-    if (colision.colliding) {
-        printf("Colisao detectada!\n");
+    collision = colision_obb_obb(moving_obb, target_obb);
+    
 
-        float correction_amount = colision.penetration;
+    if (collision.colliding) {
+        float penetration = collision.penetration;
 
-        if (correction_amount > 0.0f) {
-             glm::vec4 normal_vec = glm::vec4(colision.normal, 0.0f);
-             character_pos += normal_vec * correction_amount;
+        if (penetration > 0.0f) {
+            glm::vec4 normal_vec = glm::vec4(collision.normal, 0.0f);
+            obj_pos += normal_vec * penetration;
         }
 
-        // Corrige velocidade (Impulso de colisão)
-        float vn = glm::dot(glm::vec3(character_vel), colision.normal);
-
+        float vn = glm::dot(glm::vec3(obj_vel), collision.normal);
         if (vn < 0.0f) {
-             // Anula a componente de velocidade que está penetrando (a normal da colisão que detectamos)
-             character_vel -= vn * glm::vec4(colision.normal, 0.0f);
+            obj_vel -= vn * glm::vec4(collision.normal, 0.0f);
         }
-        
-        if(update_grounded_flag && colision.normal.y > 0.7f) { // Limiar de 0.7f (aprox. 45 graus)
-             // Estabilização vertical: Zera a velocidade y no contato para evitar oscilação
-            character_vel.y = 0.0f;
+
+        if (update_grounded_flag && collision.normal.y > 0.7f) {
+            obj_vel.y = 0.0f;
+ 
+            obj_pos.y = last_y_pos.y; 
 
             grounded_flag = true;
         }
-
     }
     else if (update_grounded_flag) {
-        
-        float margem = 0.05f; // margem de tolerância
-        
-        OBB obb_com_margem = character_obb;
-        obb_com_margem.center.y -= margem; 
-
-        CollisionResult col_com_margem = colision_obb_aabb(obb_com_margem, platform_min, platform_max);
-
-        if (col_com_margem.colliding && col_com_margem.normal.y > 0.7f) {
-            // Estabilização vertical: Zera a velocidade y no contato para evitar oscilação
-            character_vel.y = 0.0f;
-            
-            grounded_flag = true;
-        }
+        grounded_flag = false;
     }
-/*    
-    else {
-        // Se não houver colisão, o objeto não está no chão
-        if(update_grounded_flag)
-            grounded_flag = false;
-        
-    }
-*/
-// Teve que ser removido devido à existência de múltiplas plataformas.
-
 }
+/*    
+
+*/
+
 
 
 struct Sphere {
@@ -324,6 +295,65 @@ glm::vec4 resolveCollisionSphereAABB(glm::vec4 speed_vec_sphere, Sphere& s1, con
         return speed_vec_sphere;
     }
 }
+
+
+
+float intersectRayAABB(const glm::vec3& ro, const glm::vec3& rd,
+                       const glm::vec3& minB, const glm::vec3& maxB)
+{
+    float tmin = 0.0f;
+    float tmax = 1e30f;
+
+    for (int i = 0; i < 3; i++) {
+        if (abs(rd[i]) < 1e-6f) {
+            // Raio paralelo ao slab -> se está fora, sem intersecção
+            if (ro[i] < minB[i] || ro[i] > maxB[i])
+                return -1.0f;
+        } else {
+            float ood = 1.0f / rd[i];
+            float t1 = (minB[i] - ro[i]) * ood;
+            float t2 = (maxB[i] - ro[i]) * ood;
+
+            if (t1 > t2) std::swap(t1, t2);
+
+            tmin = glm::max(tmin, t1);
+            tmax = glm::min(tmax, t2);
+
+            if (tmin > tmax)
+                return -1.0f;
+        }
+    }
+
+    return tmin >= 0.0f ? tmin : tmax;
+}
+
+
+glm::vec3 resolve_collision_ray_aabb(
+    const glm::vec3& ray_origin,   
+    const glm::vec3& ray_dir,    
+    float desiredDist,           
+    glm::vec3 aabb_min,
+    glm::vec3 aabb_max,           
+    float margin = 0.05f       
+) {
+    float hit = intersectRayAABB(ray_origin, ray_dir,
+                                aabb_min, aabb_max);
+
+    // Se bate e o ponto está mais próximo que o destino desejado
+    if (hit > 0.0f && hit < desiredDist) {
+        printf("colisao ray aabb\n");
+        desiredDist = hit - margin;
+
+        if (desiredDist < 0.01f)
+            desiredDist = 0.01f;
+    }
+
+    printf("desiredDist after ray aabb: %.2f\n", desiredDist);
+    // Retorna a posição ajustada ao longo do raio
+    return ray_origin + ray_dir * desiredDist;
+}
+
+
 
 
 bool colision_with_void(float min_y){

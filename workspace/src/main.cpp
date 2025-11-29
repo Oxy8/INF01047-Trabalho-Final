@@ -51,6 +51,8 @@
 #include "jogo.cpp"
 #include "collisions.cpp"
 
+#define M_PI 3.14159265358979323846
+
 // Estrutura que representa um modelo geométrico carregado a partir de um
 // arquivo ".obj". Veja https://en.wikipedia.org/wiki/Wavefront_.obj_file .
 struct ObjModel
@@ -145,6 +147,7 @@ void TextRendering_ShowModelViewProjection(GLFWwindow* window, glm::mat4 project
 void TextRendering_ShowEulerAngles(GLFWwindow* window);
 void TextRendering_ShowProjection(GLFWwindow* window);
 void TextRendering_ShowFramesPerSecond(GLFWwindow* window);
+
 
 // Funções callback para comunicação com o sistema operacional e interação do
 // usuário. Veja mais comentários nas definições das mesmas, abaixo.
@@ -266,6 +269,11 @@ bool last_t_state = false;
 float COLLISION_SLOP = 0.0001f; 
 float RESTING_THRESHOLD = 0.001f;
 
+float max_launch_force = 70.0f;
+float min_launch_force = 12.0f;
+float launch_force_factor = 40.0f;
+
+int num_falls = 0;
 
 // Variáveis que definem um programa de GPU (shaders). Veja função LoadShadersFromFiles().
 GLuint g_GpuProgramID = 0;
@@ -407,7 +415,7 @@ int main(int argc, char* argv[])
 
     GLuint skyboxTextureID = LoadCubemap(skyboxFaces);
 
-
+    
     // Construímos a representação de objetos geométricos através de malhas de triângulos
 
     ObjModel platformmodel("../../data/platform.obj");
@@ -472,6 +480,8 @@ int main(int argc, char* argv[])
         character_obbs[BOOTS].half_sizes,
     };
 
+    OBB fcg_initial_obb = createOBBFromAABB(g_VirtualScene["TextFCG"].bbox_min, g_VirtualScene["TextFCG"].bbox_max);
+
     if ( argc > 1 )
     {
         ObjModel model(argv[1]);
@@ -502,6 +512,7 @@ int main(int argc, char* argv[])
     // Ficamos em um loop infinito, renderizando, até que o usuário feche a janela
     while (!glfwWindowShouldClose(window))
     {
+
         float current_time = glfwGetTime();
         float delta_time = current_time - initial_time;
         initial_time = current_time;
@@ -527,93 +538,7 @@ int main(int argc, char* argv[])
         // provavelmente será alterado no futuro para que a depender do objeto, diferentes modos de iluminação possam ser utilizados.
 
 
-        // ======================================================
-        // ATUALIZAÇÃO DA CÂMERA
-        // ======================================================
-        
-
-        // Computamos a posição da câmera utilizando coordenadas esféricas.  As
-        // variáveis g_CameraDistance, g_CameraPhi, e g_CameraTheta são
-        // controladas pelo mouse do usuário. Veja as funções CursorPosCallback()
-        // e ScrollCallback().
-
-        // Inverte a câmera para olhar para o personagem
-
-        glm::vec4 camera_lookat_l = glm::vec4(character_position_c.x, character_position_c.y + 2.6f, character_position_c.z, 1.0f);
-        glm::vec4 camera_view_vector;
-
-        bool current_y_state = glfwGetKey(window, GLFW_KEY_Y) == GLFW_PRESS;
-
-        bool current_t_state = glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS;
-
-        // Evita problema de apertar ambos botões juntos
-        if (current_y_state && current_t_state) {
-            current_y_state = false;
-            current_t_state = false;
-        }
-        
-        if (current_y_state && !last_y_state) {
-            if(look_at_camera_mode != LOOK_AT_CAMERA_MODE_FRONT){
-                look_at_camera_mode = LOOK_AT_CAMERA_MODE_FRONT;
-            }
-            else{
-                look_at_camera_mode = LOOK_AT_CAMERA_OFF;
-            }
-        }
-
-        if (current_t_state && !last_t_state) {
-            if(look_at_camera_mode != LOOK_AT_CAMERA_MODE_BACK){
-                look_at_camera_mode = LOOK_AT_CAMERA_MODE_BACK;
-            }
-            else{
-                look_at_camera_mode = LOOK_AT_CAMERA_OFF;
-            }
-        }
-
-        last_y_state = current_y_state;
-        last_t_state = current_t_state;
-
-        if(look_at_camera_mode == LOOK_AT_CAMERA_MODE_BACK){
-            if(g_CameraPhi < -3.141592f/2 + 0.25f)
-                g_CameraPhi = -3.141592f/2 + 0.25f;
-            r = - g_CameraDistance - look_at_camera_mode_initial_distance;
-            y = - r*sin(g_CameraPhi);
-            z = r*cos(g_CameraPhi)*cos(g_CameraTheta);
-            x = r*cos(g_CameraPhi)*sin(g_CameraTheta);
-            camera_position_c = character_position_c + glm::vec4(x, y+2.6f, z, 0.0f);
-            camera_view_vector = camera_lookat_l - camera_position_c; // Vetor "view", sentido para onde a câmera está virada
-
-        }
-
-        else if(look_at_camera_mode == LOOK_AT_CAMERA_MODE_FRONT){
-            if(g_CameraPhi > 3.141592f/2 - 0.25f)
-                g_CameraPhi = 3.141592f/2 - 0.25f;
-            r = g_CameraDistance + look_at_camera_mode_initial_distance;
-            y = - r*sin(g_CameraPhi);
-            z = r*cos(g_CameraPhi)*cos(g_CameraTheta);
-            x = r*cos(g_CameraPhi)*sin(g_CameraTheta);
-            camera_position_c = character_position_c + glm::vec4(x, y+2.6f, z, 0.0f);
-            camera_view_vector = camera_lookat_l - camera_position_c; // Vetor "view", sentido para onde a câmera está virada
-        }
-
-        else{
-            if(g_CameraPhi > 3.141592f/2 - 0.25f)
-                g_CameraPhi = 3.141592f/2 - 0.25f;
-            g_CameraDistance = 1.4f;
-            r = g_CameraDistance;
-            y = - r*sin(g_CameraPhi);
-            z = r*cos(g_CameraPhi)*cos(g_CameraTheta);
-            x = r*cos(g_CameraPhi)*sin(g_CameraTheta);
-            camera_position_c = character_position_c + glm::vec4(x, y+2.6f, z, 0.0f);
-            camera_view_vector = glm::vec4(x,y,z,0.0f); // Vetor "view", sentido para onde a câmera está virada
-        }
-
-
-        glm::vec3 look = glm::vec3(camera_lookat_l);
-        glm::vec3 dir  = glm::vec3(camera_position_c) - look;
-
-        float desiredDist = glm::length(dir);
-        dir = glm::normalize(dir);
+ 
 
 
         // ======================================================
@@ -694,34 +619,9 @@ int main(int argc, char* argv[])
             character_velocity.y = 0.0f;
         }
 
-        //printf("Character velocity Y: %f\n", character_velocity.y);
-        character_position_c += character_velocity * delta_time;
-
-        //printf("Character position Y before collision: %f\n", character_position_c.y);
-
-    
-        
-        bool grounded_curr = false;
-        for(int i = 0; i < character_obbs.size(); i++){
-            // Atualiza OBBs do personagem de acordo com a posição atual
-            
-            for (int j = 0; j< n_plataformas; j++) {
-                // Atualiza grounded considerando colisão com qualquer uma das plataformas
-
-                Plataforma plataforma = plataformas[j];
-                        
-                resolve_collision_obb_aabb(character_position_c, character_velocity, grounded_curr, (i == BOOTS), character_obbs[i], plataforma.bbox_min, plataforma.bbox_max );
-            }
-        }
-
-        grounded = grounded_curr;
-
-        //printf("Character position Y after collision: %f\n", character_position_c.y);
-        //printf("Grounded: %d\n", grounded);
-
-        
         if (colision_with_void(character_position_c.y)) {
             character_position_c = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+            num_falls += 1;
             grounded = true;
         }
 
@@ -730,18 +630,210 @@ int main(int argc, char* argv[])
             character_velocity.y = 10.0f;
         }
 
+
+        
+        //printf("Character velocity Y: %f\n", character_velocity.y);
+        character_position_c += character_velocity * delta_time;
+
+        
+        glm::mat4 char_pos = Matrix_Translate(character_position_c.x, character_position_c.y, character_position_c.z);
+        glm::mat4 model = char_pos
+            * Matrix_Rotate_Y(g_CameraTheta)
+            * Matrix_Scale(0.5f, 0.5f, 0.5f);
+
+        for(int i = 0; i < character_obbs.size(); i++){
+            glm::vec3 initial_half_sizes = character_bbs_initial_half_sizes[i];
+            updateOBB(character_obbs[i], model, character_obbs_initial_centers[i], character_bbs_initial_half_sizes[i]);
+        }
+
+
+        OBB fcg_obb1;
+        glm::mat4 fcg_model = Matrix_Translate(15, 4.2, 24)
+            * Matrix_Scale(2.2f, 2.2f, 2.2f)
+            * Matrix_Rotate_Y(current_time/4.0);
+        
+        updateOBB(fcg_obb1, fcg_model, fcg_initial_obb.center, fcg_initial_obb.half_sizes);
+        
+
+        OBB fcg_obb2;
+        glm::mat4 fcg_model2 = Matrix_Translate(8, 4.2, 24)
+            * Matrix_Scale(2.2f, 2.2f, 2.2f)
+            * Matrix_Rotate_Y(current_time/4.0);
+        updateOBB(fcg_obb2, fcg_model2, fcg_initial_obb.center, fcg_initial_obb.half_sizes);
+
+
+        
+        for(int i = 0; i < character_obbs.size(); i++){
+            // Atualiza OBBs do personagem de acordo com a posição atual
+            
+            for (int j = 0; j< n_plataformas; j++) {
+                // Atualiza grounded considerando colisão com qualquer uma das plataformas
+
+                Plataforma plataforma = plataformas[j];
+                // Se o persongem estiver grounded por uma plataforma, já não precisa atualizar grounded em outras plataformas
+                resolve_collision_obb_obb(character_position_c, character_velocity, 
+                                                    grounded, (i == BOOTS) && (!grounded || j == 0), 
+                                                    character_obbs[i], createOBBFromAABB(plataforma.bbox_min, plataforma.bbox_max), plataforma.bbox_max);
+            }
+
+            // Detecta colisão entre o personagem e os letreiros FCG
+            resolve_collision_obb_obb(character_position_c, character_velocity, 
+                                                grounded, (i == BOOTS) && (!grounded), 
+                                                character_obbs[i], fcg_obb1, glm::vec3(character_position_c));
+
+            resolve_collision_obb_obb(character_position_c, character_velocity, 
+                                                grounded, (i == BOOTS) && (!grounded), 
+                                                character_obbs[i], fcg_obb2, glm::vec3(character_position_c));
+        }
+
+
+
+       // ======================================================
+        // ATUALIZAÇÃO DA CÂMERA
+        // ======================================================
+        
+        // Câmera atualizada depois da posição de personagem pois depende dela e antes dos projéteis, pois a direção de disparo depende da câmera
+
+        // Computamos a posição da câmera utilizando coordenadas esféricas.  As
+        // variáveis g_CameraDistance, g_CameraPhi, e g_CameraTheta são
+        // controladas pelo mouse do usuário. Veja as funções CursorPosCallback()
+        // e ScrollCallback().
+
+        // Inverte a câmera para olhar para o personagem
+
+        glm::vec4 camera_lookat_l = glm::vec4(character_position_c.x, character_position_c.y + 2.6f, character_position_c.z, 1.0f);
+        glm::vec4 camera_view_vector;
+
+        bool current_y_state = glfwGetKey(window, GLFW_KEY_Y) == GLFW_PRESS;
+
+        bool current_t_state = glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS;
+
+        // Evita problema de apertar ambos botões juntos
+        if (current_y_state && current_t_state) {
+            current_y_state = false;
+            current_t_state = false;
+        }
+        
+        if (current_y_state && !last_y_state) {
+            if(look_at_camera_mode != LOOK_AT_CAMERA_MODE_FRONT){
+                look_at_camera_mode = LOOK_AT_CAMERA_MODE_FRONT;
+            }
+            else{
+                look_at_camera_mode = LOOK_AT_CAMERA_OFF;
+            }
+        }
+
+        if (current_t_state && !last_t_state) {
+            if(look_at_camera_mode != LOOK_AT_CAMERA_MODE_BACK){
+                look_at_camera_mode = LOOK_AT_CAMERA_MODE_BACK;
+            }
+            else{
+                look_at_camera_mode = LOOK_AT_CAMERA_OFF;
+            }
+        }
+
+        last_y_state = current_y_state;
+        last_t_state = current_t_state;
+
+        if(look_at_camera_mode == LOOK_AT_CAMERA_MODE_BACK){
+            if(g_CameraPhi < -3.141592f/2 + 0.25f)
+                g_CameraPhi = -3.141592f/2 + 0.25f;
+            r = - g_CameraDistance - look_at_camera_mode_initial_distance;
+            y = - r*sin(g_CameraPhi);
+            z = r*cos(g_CameraPhi)*cos(g_CameraTheta);
+            x = r*cos(g_CameraPhi)*sin(g_CameraTheta);
+            camera_position_c = character_position_c + glm::vec4(x, y+2.6f, z, 0.0f);
+            camera_view_vector = camera_lookat_l - camera_position_c; // Vetor "view", sentido para onde a câmera está virada
+
+        }
+
+        else if(look_at_camera_mode == LOOK_AT_CAMERA_MODE_FRONT){
+            if(g_CameraPhi > 3.141592f/2 - 0.25f)
+                g_CameraPhi = 3.141592f/2 - 0.25f;
+            r = g_CameraDistance + look_at_camera_mode_initial_distance;
+            y = - r*sin(g_CameraPhi);
+            z = r*cos(g_CameraPhi)*cos(g_CameraTheta);
+            x = r*cos(g_CameraPhi)*sin(g_CameraTheta);
+            camera_position_c = character_position_c + glm::vec4(x, y+2.6f, z, 0.0f);
+            camera_view_vector = camera_lookat_l - camera_position_c; // Vetor "view", sentido para onde a câmera está virada
+        }
+
+        else{
+            if(g_CameraPhi > 3.141592f/2 - 0.25f)
+                g_CameraPhi = 3.141592f/2 - 0.25f;
+            g_CameraDistance = 1.4f;
+            r = g_CameraDistance;
+            y = - r*sin(g_CameraPhi);
+            z = r*cos(g_CameraPhi)*cos(g_CameraTheta);
+            x = r*cos(g_CameraPhi)*sin(g_CameraTheta);
+            camera_position_c = character_position_c + glm::vec4(x, y+2.6f, z, 0.0f);
+            camera_view_vector = glm::vec4(x,y,z,0.0f); // Vetor "view", sentido para onde a câmera está virada
+        }
+
+
+        // Resolve colisão da câmera com as plataformas
+        glm::vec3 look = glm::vec3(camera_lookat_l);
+        glm::vec3 dir  = glm::vec3(camera_position_c) - look;
+
+        float desiredDist = glm::length(dir);
+        dir = glm::normalize(dir);
+
+        float margin = 0.05f;
+
+        printf("camera_position_c before collision: (%f, %f, %f)\n", camera_position_c.x, camera_position_c.y, camera_position_c.z);
+
+        for (int j = 0; j< n_plataformas; j++) {
+            // Atualiza grounded considerando colisão com qualquer uma das plataformas
+            Plataforma plataforma = plataformas[j];
+
+            float hit = intersectRayAABB(look, dir, plataforma.bbox_min, plataforma.bbox_max);
+
+            // Se bate e o ponto está mais próximo que o destino desejado
+            if (hit > 0.0f && hit < desiredDist) {
+                printf("colisao ray aabb\n");
+                desiredDist = hit - margin;
+
+                if (desiredDist < 0.01f)
+                    desiredDist = 0.01f;
+
+
+                camera_position_c = glm::vec4(look + dir * desiredDist, 1.0f);
+                dir = glm::vec3(camera_position_c) - look;
+                desiredDist = glm::length(dir);
+                dir = glm::normalize(dir);
+            }
+
+        }
+
+printf("camera_position_c: (%f, %f, %f)\n", camera_position_c.x, camera_position_c.y, camera_position_c.z);
+        // Computamos a matriz "View" utilizando os parâmetros da câmera para
+        // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
+        view = Matrix_Camera_View(camera_position_c, camera_view_vector, camera_up_vector);
+        
+
+
         // Projéteis
         // =#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#
 
         // Cria novos projéteis:
-
         if (g_LeftMouseButtonPressed) {
             leftClickHoldTime += delta_time;
         }
         if (mouseWasPressedLastFrame && !g_LeftMouseButtonPressed) {
             // liberou o mouse, cria o projétil
             float speed_factor = std::min(leftClickHoldTime, 2.5f);
-            glm::vec4 speed_vec = camera_view_vector * std::max(leftClickHoldTime*30, 12.0f);
+
+            camera_view_vector = glm::normalize(camera_view_vector);
+
+            glm::vec4 speed_vec;
+
+            float launch_speed_magnitude = std::min(std::max(leftClickHoldTime * launch_force_factor, min_launch_force), max_launch_force);
+
+            if(LOOK_AT_CAMERA_MODE_FRONT == look_at_camera_mode)
+                speed_vec = -camera_view_vector * launch_speed_magnitude;
+            else
+                speed_vec = camera_view_vector * launch_speed_magnitude;
+            
             Cogumelo projetil = {0.0, character_position_c, speed_vec};
             
             projetil.position.y += 4.0;
@@ -749,9 +841,6 @@ int main(int argc, char* argv[])
             lista_cogumelos.push_back(projetil);
 
             leftClickHoldTime = 0.0;
-
-            printf("Lança Projétil\n");
-
         }
 
         mouseWasPressedLastFrame = g_LeftMouseButtonPressed;
@@ -811,10 +900,6 @@ int main(int argc, char* argv[])
         }
 
 
-
-        // Computamos a matriz "View" utilizando os parâmetros da câmera para
-        // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
-        view = Matrix_Camera_View(camera_position_c, camera_view_vector, camera_up_vector);
 
         // ======================================================
         // PROJEÇÃO
@@ -891,7 +976,7 @@ int main(int argc, char* argv[])
         glUseProgram(g_GpuProgramID); // Use o programa de shader dedicado.
 
 
-        glm::mat4 model = Matrix_Identity(); // Transformação identidade de modelagem
+        model = Matrix_Identity(); // Transformação identidade de modelagem
 
         // Enviamos as matrizes "view" e "projection" para a placa de vídeo
         // (GPU). Veja o arquivo "shader_vertex.glsl", onde estas são
@@ -934,7 +1019,7 @@ int main(int argc, char* argv[])
  
         // Desenhamos o personagem
 
-        glm::mat4 char_pos = Matrix_Translate(character_position_c.x, character_position_c.y, character_position_c.z);
+        char_pos = Matrix_Translate(character_position_c.x, character_position_c.y, character_position_c.z);
         model = char_pos
             * Matrix_Rotate_Y(g_CameraTheta)
             * Matrix_Scale(0.5f, 0.5f, 0.5f);
@@ -947,15 +1032,8 @@ int main(int argc, char* argv[])
 
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, MARIO_PANTS);
-        //DrawVirtualObject("submesh_1");
-        //DrawVirtualObject("submesh_2");
-        //DrawVirtualObject("submesh_3");
         DrawVirtualObject("submesh_4");
-        //DrawVirtualObject("submesh_5");
-        //DrawVirtualObject("submesh_6");
-        //DrawVirtualObject("submesh_7");
 
-        
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, MARIO_FACE);
         DrawVirtualObject("submesh_7");
@@ -1025,12 +1103,14 @@ int main(int argc, char* argv[])
         // Desenhamos o letreiro FCG phong e gouraud (geramos os dois para comparar visualmente um com o outro)
 
         // Phong
-        model = Matrix_Translate(15, 4.2, 24)
-            * Matrix_Scale(2.2f, 2.2f, 2.2f)
-            * Matrix_Rotate_Y(glfwGetTime()/4.0);
+        model = fcg_model;
+        
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, FCG);
         DrawVirtualObject("TextFCG");
+
+        
+
 
 
         // Gouraud
@@ -1038,12 +1118,39 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(g_view_uniform_gouraud , 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(g_projection_uniform_gouraud, 1, GL_FALSE, glm::value_ptr(projection));
 
-        model = Matrix_Translate(8, 4.2, 24)
-            * Matrix_Scale(2.2f, 2.2f, 2.2f)
-            * Matrix_Rotate_Y(glfwGetTime()/4.0);
+        model = fcg_model2;
         glUniformMatrix4fv(g_model_uniform_gouraud , 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform_gouraud, FCG);
         DrawVirtualObject("TextFCG");
+
+
+
+        // ======================================================
+        // RENDERIZAÇÃO DO TEXTO NA TELA
+
+        // Ajuda na mira (um simples + no centro da tela)
+        // Fica ativa enquanto jogador pressionar o botão esquerdo do mouse
+        if (g_LeftMouseButtonPressed){
+            
+            float current_force = std::min(std::max(leftClickHoldTime * launch_force_factor, min_launch_force), max_launch_force);
+
+            // Imprime a força atual de lançamento no canto da tela, no formato de uma barrinha de progresso
+            float ratio = current_force / max_launch_force; 
+            float width = 20;
+            int filled_bars = (int)(ratio * width);
+            int empty_bars  = width - filled_bars;
+
+            std::stringstream ss;
+            ss << "[" << std::string(filled_bars, '|') + std::string(empty_bars, ' ') << "]";
+
+            TextRendering_PrintString(window, ss.str(), -0.2f, -0.4f, 1.0f);
+
+            if(look_at_camera_mode == LOOK_AT_CAMERA_OFF)
+                TextRendering_PrintString(window, "+", 0.0f, 0.0f, 2.0f);
+        }
+            
+
+       
 
 
         if (n_passaros == 0 & n_passaros_atingidos >= 1) {
@@ -1057,8 +1164,32 @@ int main(int argc, char* argv[])
 
             int numchars2 = tempo_texto.size();
 
+            std::string falls_texto = "Numero de quedas: " + std::to_string(num_falls);
+            int numchars3 = falls_texto.size();
+
+            int numchars4 = 30;
+
+
+
             TextRendering_PrintString(window, "FIM DO JOGO", 0.0f-(numchars1 + 1)*charwidth/2.0f, 0.1f-lineheight/2.0f, 2.0f);
             TextRendering_PrintString(window, tempo_texto, 0.0f-(numchars2 + 1)*charwidth/2.0f, -0.1f-lineheight/2.0f, 2.0f);
+            TextRendering_PrintString(window, falls_texto, 0.0f-(numchars3 + 1)*charwidth/2.0f, -0.3f-lineheight/2.0f, 2.0f);
+            TextRendering_PrintString(window, "Pressione ENTER para reiniciar", 0.0f-(numchars4 + 1)*charwidth/2.0f, -0.5f-lineheight/2.0f, 2.0f);
+
+
+            // Se pressionar enter, reinicia o jogo
+            if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS) {
+                // reinicia variáveis do jogo
+                character_position_c = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+                character_velocity = glm::vec4(0.0f);
+                grounded = true;
+                passaros = inicializaPassaros();
+                n_passaros = passaros.size();
+                n_passaros_atingidos = 0;
+                lista_cogumelos.clear();
+                tempo_exec_total = 0.0f;
+                num_falls = 0;
+            }
 
             
         } else {
@@ -1092,6 +1223,7 @@ int main(int argc, char* argv[])
         // definidas anteriormente usando glfwSet*Callback() serão chamadas
         // pela biblioteca GLFW.
         glfwPollEvents();
+
     }
 
     // Finalizamos o uso dos recursos do sistema operacional
@@ -2118,6 +2250,8 @@ void TextRendering_ShowFramesPerSecond(GLFWwindow* window)
 
     TextRendering_PrintString(window, buffer, 1.0f-(numchars + 1)*charwidth, 1.0f-lineheight, 1.0f);
 }
+
+
 
 // Função para debugging: imprime no terminal todas informações de um modelo
 // geométrico carregado de um arquivo ".obj".
