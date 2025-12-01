@@ -106,6 +106,9 @@ struct SeparationInfo {
     bool norm_direction; // direção da normal (para qual OBB a normal aponta)
 };
 
+
+// FONTE: https://stackoverflow.com/questions/47866571/simple-oriented-bounding-box-obb-collision-detection-explaining
+// Não exatamente igual, mas esqueleto da implementação da colisão OBB x OBB é baseado nessa fonte
 SeparationInfo existSeparatingPlane(const glm::vec3& vector_between_centers, const glm::vec3& axis, 
                                     const OBB& obb1, const OBB& obb2)
 {
@@ -205,7 +208,6 @@ CollisionResult colision_obb_aabb(const OBB& obb, const glm::vec3& aabb_min, con
 }
 
 
-
 void resolve_collision_obb_obb(
     glm::vec4& obj_pos,                 // posição do objeto que se move
     glm::vec4& obj_vel,                 // velocidade do objeto
@@ -245,9 +247,6 @@ void resolve_collision_obb_obb(
         grounded_flag = false;
     }
 }
-/*    
-
-*/
 
 
 

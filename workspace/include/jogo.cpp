@@ -270,7 +270,7 @@ struct CubicBézierCurve {
         return p;
     }
 
-    // Gerado com Gemini (só a derivada)
+    // FONTE: Gerado com Gemini (só a derivada)
     glm::vec4 derivative(float t) const {
         glm::vec4 q1 = 3.0f*(p2 - p1);
         glm::vec4 q2 = 3.0f*(p3 - p2);

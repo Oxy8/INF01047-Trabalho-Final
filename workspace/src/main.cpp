@@ -771,7 +771,7 @@ int main(int argc, char* argv[])
             y = - r*sin(g_CameraPhi);
             z = r*cos(g_CameraPhi)*cos(g_CameraTheta);
             x = r*cos(g_CameraPhi)*sin(g_CameraTheta);
-            camera_position_c = character_position_c + glm::vec4(x, y+2.6f, z, 0.0f);
+            camera_position_c = character_position_c + glm::vec4(x, y+3.5f, z, 0.0f);
             camera_view_vector = glm::vec4(x,y,z,0.0f); // Vetor "view", sentido para onde a câmera está virada
         }
 
@@ -785,7 +785,6 @@ int main(int argc, char* argv[])
 
         float margin = 0.05f;
 
-        printf("camera_position_c before collision: (%f, %f, %f)\n", camera_position_c.x, camera_position_c.y, camera_position_c.z);
 
         for (int j = 0; j< n_plataformas; j++) {
             // Atualiza grounded considerando colisão com qualquer uma das plataformas
@@ -810,7 +809,6 @@ int main(int argc, char* argv[])
 
         }
 
-printf("camera_position_c: (%f, %f, %f)\n", camera_position_c.x, camera_position_c.y, camera_position_c.z);
         // Computamos a matriz "View" utilizando os parâmetros da câmera para
         // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
         view = Matrix_Camera_View(camera_position_c, camera_view_vector, camera_up_vector);
@@ -888,7 +886,7 @@ printf("camera_position_c: (%f, %f, %f)\n", camera_position_c.x, camera_position
             // passaros
             for (int j = 0; j < n_passaros; j++) {
                 ClosedCompositeCubicBézierCurve passaro = generateClosedBezierCycle(passaros[j]);
-                Sphere esfera_passaro = Sphere{birdPosition(passaro, glfwGetTime()*2.0), raio_colisao_bird};
+                Sphere esfera_passaro = Sphere{birdPosition(passaro, current_time*2.0), raio_colisao_bird};
                 esfera_passaro.center.y += 2*raio_colisao_cogumelo;
                 if (collision_sphere_sphere(esfera_cogu, esfera_passaro)) {
                     printf("colisao passaro\n");
@@ -942,22 +940,26 @@ printf("camera_position_c: (%f, %f, %f)\n", camera_position_c.x, camera_position
 
 
         // ---------------------------------------------------------------------
-        // 2. DESENHO DO SKYBOX (PRIMEIRO OU ÚLTIMO)
+        // DESENHO DO SKYBOX
         // ---------------------------------------------------------------------
 
-        // Boa prática: renderizar o Skybox primeiro ou por último para otimização de profundidade.
-        // Vamos renderizá-lo primeiro, ANTES de enviar a matriz View padrão.
+        // Renderização do Skybox primeiro
 
-        // A) Preparar a Matriz View sem Translação (apenas Rotação)
-        // Removemos a 4ª coluna (translação) da matriz View original.
+        // Preparamos a Matriz View sem Translação (apenas Rotação), por isso usamos glm::mat3(view)
 
-        // --- Skybox ---
+        // Não escreve nada no Z-buffer enquanto está desenhando o skybox
         glDepthMask(GL_FALSE);
+
+        // O teste pedrão de profundida é GL_LESS, mas para o skybox teremos profundidade máxima (1.0 = w / w (na divisão perspectiva)), 
+        // então trocamos para GL_LEQUAL para garantir que o skybox passe no teste de profundidade (1 < 1 => false, mas 1 <= 1 => true)
         glDepthFunc(GL_LEQUAL);
+
+        // Só desenha as faces internas do skybox
         glDisable(GL_CULL_FACE);
 
         glUseProgram(g_SkyboxProgramID);
 
+        // Aqui enviamos a view e a projection. A view sem a informação de translação - o skybox precisa parecer infinito!
         glm::mat4 view_skybox = glm::mat4(glm::mat3(view));
         glUniformMatrix4fv(g_skybox_view_uniform, 1, GL_FALSE, glm::value_ptr(view_skybox));
         glUniformMatrix4fv(g_skybox_projection_uniform, 1, GL_FALSE, glm::value_ptr(projection));
@@ -968,7 +970,9 @@ printf("camera_position_c: (%f, %f, %f)\n", camera_position_c.x, camera_position
 
         DrawVirtualObject("Skybox");
 
+        // Voltamos às configurações anteriores
         glDepthMask(GL_TRUE);
+        
         glDepthFunc(GL_LESS);
         glEnable(GL_CULL_FACE);
 
@@ -1076,7 +1080,7 @@ printf("camera_position_c: (%f, %f, %f)\n", camera_position_c.x, camera_position
         
             ClosedCompositeCubicBézierCurve path = generateClosedBezierCycle(passaro);
             
-            model = prepareDrawBird(path, (glfwGetTime()*2.0f));
+            model = prepareDrawBird(path, (current_time*2.0f));
             model = model * Matrix_Rotate_Y(M_PI); // Ajuste de orientação do modelo do pássaro
             glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
             glUniform1i(g_object_id_uniform, BIRD);
@@ -1090,7 +1094,7 @@ printf("camera_position_c: (%f, %f, %f)\n", camera_position_c.x, camera_position
 
             model = Matrix_Translate(cogumelo.x, cogumelo.y, cogumelo.z)
                 * Matrix_Scale(0.2f, 0.2f, 0.2f)
-                * Matrix_Rotate_Y(3.0*glfwGetTime());
+                * Matrix_Rotate_Y(3.0*current_time);
 
             glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
             glUniform1i(g_object_id_uniform, COGUMELO0);
