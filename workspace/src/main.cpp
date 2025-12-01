@@ -292,6 +292,11 @@ GLint g_object_id_uniform_gouraud;
 GLint g_bbox_min_uniform_gouraud;
 GLint g_bbox_max_uniform_gouraud;
 
+
+
+GLuint current_g_GpuProgramID = 0;
+
+
 // Variável global para o programa do Skybox
 GLuint g_SkyboxProgramID = 0;
 
@@ -400,7 +405,7 @@ int main(int argc, char* argv[])
     LoadTextureImage("../../data/bottom.png"); // TextureImageDirt
     LoadTextureImage("../../data/mushroom-sharp.png"); // TextureImageCogumelo
     LoadTextureImage("../../data/Tiles_070_basecolor.png"); // TextureImageBird
-    LoadTextureImage("../../data/grass_sides.png"); // TextureImageLetreiro
+    LoadTextureImage("../../data/granite-crazy-paving-1045-mm-architextures.jpg"); // TextureImageLetreiro
 
 
     
@@ -974,6 +979,7 @@ printf("camera_position_c: (%f, %f, %f)\n", camera_position_c.x, camera_position
         // ======================================================
 
         glUseProgram(g_GpuProgramID); // Use o programa de shader dedicado.
+        current_g_GpuProgramID = g_GpuProgramID;
 
 
         model = Matrix_Identity(); // Transformação identidade de modelagem
@@ -1115,6 +1121,7 @@ printf("camera_position_c: (%f, %f, %f)\n", camera_position_c.x, camera_position
 
         // Gouraud
         glUseProgram(g_GpuProgramID_gouraud);
+        current_g_GpuProgramID = g_GpuProgramID_gouraud;
         glUniformMatrix4fv(g_view_uniform_gouraud , 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(g_projection_uniform_gouraud, 1, GL_FALSE, glm::value_ptr(projection));
 
@@ -1299,8 +1306,18 @@ void DrawVirtualObject(const char* object_name)
     // com os parâmetros da axis-aligned bounding box (AABB) do modelo.
     glm::vec3 bbox_min = g_VirtualScene[object_name].bbox_min;
     glm::vec3 bbox_max = g_VirtualScene[object_name].bbox_max;
-    glUniform4f(g_bbox_min_uniform, bbox_min.x, bbox_min.y, bbox_min.z, 1.0f);
-    glUniform4f(g_bbox_max_uniform, bbox_max.x, bbox_max.y, bbox_max.z, 1.0f);
+
+
+    if (current_g_GpuProgramID == g_GpuProgramID_gouraud)
+    {
+        glUniform4f(g_bbox_min_uniform_gouraud, bbox_min.x, bbox_min.y, bbox_min.z, 1.0f);
+        glUniform4f(g_bbox_max_uniform_gouraud, bbox_max.x, bbox_max.y, bbox_max.z, 1.0f);
+    }
+    else 
+    {
+        glUniform4f(g_bbox_min_uniform, bbox_min.x, bbox_min.y, bbox_min.z, 1.0f);
+        glUniform4f(g_bbox_max_uniform, bbox_max.x, bbox_max.y, bbox_max.z, 1.0f);
+    }
 
     // Pedimos para a GPU rasterizar os vértices dos eixos XYZ
     // apontados pelo VAO como linhas. Veja a definição de
@@ -1388,9 +1405,13 @@ void LoadShadersFromFiles()
     g_view_uniform_gouraud       = glGetUniformLocation(g_GpuProgramID_gouraud, "view"); // Variável da matriz "view" em shader_vertex.glsl
     g_projection_uniform_gouraud = glGetUniformLocation(g_GpuProgramID_gouraud, "projection"); // Variável da matriz "projection" em shader_vertex.glsl
     g_object_id_uniform_gouraud  = glGetUniformLocation(g_GpuProgramID_gouraud, "object_id"); // Variável "object_id" em shader_fragment.glsl
+    g_bbox_min_uniform_gouraud  = glGetUniformLocation(g_GpuProgramID_gouraud, "bbox_min");
+    g_bbox_max_uniform_gouraud   = glGetUniformLocation(g_GpuProgramID_gouraud, "bbox_max");
 
     // Variáveis em "shader_fragment.glsl" para acesso das imagens de textura
     glUseProgram(g_GpuProgramID_gouraud);
+    current_g_GpuProgramID = g_GpuProgramID_gouraud;
+    glUniform1i(glGetUniformLocation(g_GpuProgramID_gouraud, "TextureImageLetreiro"), 13);
 
     
     // Phong
@@ -1411,6 +1432,7 @@ void LoadShadersFromFiles()
 
     // Variáveis em "shader_fragment.glsl" para acesso das imagens de textura
     glUseProgram(g_GpuProgramID);
+    current_g_GpuProgramID = g_GpuProgramID;
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage0"), 0);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage1"), 1);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage2"), 2);

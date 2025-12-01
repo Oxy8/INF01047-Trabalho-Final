@@ -13,6 +13,8 @@ in vec4 position_model;
 // Coordenadas de textura obtidas do arquivo OBJ (se existirem!)
 in vec2 texcoords;
 
+in vec4 normal_model; 
+
 // Matrizes computadas no código C++ e enviadas para a GPU
 uniform mat4 model;
 uniform mat4 view;
@@ -84,7 +86,7 @@ uniform sampler2D TextureImageCogumelo;
 // Bird 
 uniform sampler2D TextureImageBird;
 
-// letreiro
+// Letreiro
 uniform sampler2D TextureImageLetreiro;
 
 
@@ -323,22 +325,65 @@ void main()
     else if  ( object_id == FCG )
     {
 
-        vec4 bbox_center = (bbox_min + bbox_max) / 2.0;
+        float minx = bbox_min.x;
+        float maxx = bbox_max.x;
 
-        vec4 diff = (bbox_max - bbox_min);
+        float miny = bbox_min.y;
+        float maxy = bbox_max.y;
 
-        // w=1.0 pq vamos usar pra dividir depois. Não tem sentido nenhum por si só isso aqui.
-        vec4 bbox_size = vec4(diff.x, diff.y, diff.z, 1.0);
+        float minz = bbox_min.z;
+        float maxz = bbox_max.z;
+        
 
-        float ro = length(position_model - bbox_center);
+        vec3 abs_normal = abs(normal_model.xyz);
 
-        vec4 p_vec = (position_model - bbox_center) / bbox_size;
+        
+        // determina direção da normal
 
-        float theta = atan(p_vec.x, p_vec.z); 
-        float phi = asin(p_vec.y/ro);
 
-        U = (theta + M_PI) / (2 * M_PI);
-        V = (phi + M_PI_2) / M_PI;
+        if (abs_normal.x > abs_normal.y && abs_normal.x > abs_normal.z)
+        {
+
+            V = (position_model.y - miny) / (maxy - miny);
+
+            if (normal.x > 0.0) // Face +X
+            {
+                U = (position_model.z - minz) / (maxz - minz);
+            }
+            else
+            {
+                U = 1.0 - (position_model.z - minz) / (maxz - minz);
+            }
+        }
+        else if (abs_normal.y > abs_normal.x && abs_normal.y > abs_normal.z)
+        {
+
+            U = (position_model.x - minx) / (maxx - minx);
+
+            if (normal.y > 0.0)
+            {
+                V = (position_model.z - minz) / (maxz - minz);
+            }
+            else 
+            {
+                V = (position_model.z - minz) / (maxz - minz);
+            }
+        }
+        else 
+        {
+
+            U = (position_model.x - minx) / (maxx - minx);
+
+            if (normal.z > 0.0)
+            {
+                V = (position_model.y - miny) / (maxy - miny);
+            }
+            else
+            {
+                V = 1.0 - (position_model.y - miny) / (maxy - miny);
+            }
+        }
+
 
         Kd = texture(TextureImageLetreiro, vec2(U,V)).rgb;
         Ks = vec3(0.8, 0.8, 0.8);

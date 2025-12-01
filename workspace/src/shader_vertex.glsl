@@ -20,8 +20,13 @@ out vec4 position_model;
 out vec4 normal;
 out vec2 texcoords;
 
+out vec4 normal_model;
+
 void main()
 {
+    
+    normal_model = normal_coefficients; 
+    
     // A variável gl_Position define a posição final de cada vértice
     // OBRIGATORIAMENTE em "normalized device coordinates" (NDC), onde cada
     // coeficiente estará entre -1 e 1 após divisão por w.
