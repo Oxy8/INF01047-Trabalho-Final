@@ -105,7 +105,7 @@ void main()
 
             V = (position_model.y - miny) / (maxy - miny);
 
-            if (normal.x > 0.0) 
+            if (normal_model.x > 0.0) 
             {
                 U = (position_model.z - minz) / (maxz - minz);
             }
@@ -119,7 +119,7 @@ void main()
 
             U = (position_model.x - minx) / (maxx - minx);
 
-            if (normal.y > 0.0)
+            if (normal_model.y > 0.0)
             {
                 V = (position_model.z - minz) / (maxz - minz);
             }
@@ -133,7 +133,7 @@ void main()
 
             U = (position_model.x - minx) / (maxx - minx);
 
-            if (normal.z > 0.0)
+            if (normal_model.z > 0.0)
             {
                 V = (position_model.y - miny) / (maxy - miny);
             }

@@ -513,6 +513,8 @@ int main(int argc, char* argv[])
     glm::vec4 last_horizontal_velocity = {0.0f,0.0f,0.0f,0.0f};
 
     float tempo_exec_total = 0; // para mostrar ao fim do jogo.
+    
+    
 
     // Ficamos em um loop infinito, renderizando, até que o usuário feche a janela
     while (!glfwWindowShouldClose(window))
@@ -784,22 +786,22 @@ int main(int argc, char* argv[])
         dir = glm::normalize(dir);
 
         float margin = 0.05f;
-
+        
 
         for (int j = 0; j< n_plataformas; j++) {
-            // Atualiza grounded considerando colisão com qualquer uma das plataformas
+
             Plataforma plataforma = plataformas[j];
 
             float hit = intersectRayAABB(look, dir, plataforma.bbox_min, plataforma.bbox_max);
 
             // Se bate e o ponto está mais próximo que o destino desejado
-            if (hit > 0.0f && hit < desiredDist) {
+            if (hit >= 0.0f && hit < desiredDist) {
                 printf("colisao ray aabb\n");
                 desiredDist = hit - margin;
 
-                if (desiredDist < 0.01f)
+                if (desiredDist < 0.01f) {
                     desiredDist = 0.01f;
-
+                }
 
                 camera_position_c = glm::vec4(look + dir * desiredDist, 1.0f);
                 dir = glm::vec3(camera_position_c) - look;

@@ -304,7 +304,7 @@ float intersectRayAABB(const glm::vec3& ro, const glm::vec3& rd,
     float tmax = 1e30f;
 
     for (int i = 0; i < 3; i++) {
-        if (abs(rd[i]) < 1e-6f) {
+        if (std::abs(rd[i]) < 1e-6f) {
             // Raio paralelo ao slab -> se está fora, sem intersecção
             if (ro[i] < minB[i] || ro[i] > maxB[i])
                 return -1.0f;
