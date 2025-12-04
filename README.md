@@ -119,3 +119,10 @@ Utilizamos IA Generativa no trabalho para a implementação de algumas funções
 3. Diversas vezes utilizamos IA Generativa como forma de identificar problemas na nossa implementação.
 
 O que observamos foi que a IA Generativa é muito útil para o caso (2): tirar dúvidas sobre um tópico já muito bem estabelecido. Para o caso (1), percebemos que dificilmente o código para funções complexas gerado por IAs é utilizável de forma direta, normalmente sendo possível apenas em casos em que o procedimento seja muito padrão, como o caso da aplicação de fórmulas. E para o caso (3), sentimos que a IA muitas vezes mais atrapalhou que ajudou. Em parte isso se deve ao nosso código muito extenso com grau de acoplamento muito alto.
+
+## Controles
+![Controles do Jogo](./misc/controles.png)
+
+## Imagens de Exemplo
+![Ex1](./misc/ex1.png)
+![Ex2](./misc/ex2.png)
