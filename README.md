@@ -9,13 +9,18 @@ Um jogo FPS simples onde o objetivo do personagem é arremessar projéteis em p�
 
 ## Contribuição de cada membro
 - Estevan:
-  - Passaro movimentando com curva de Bézier
+  - Movimentação dos pássaros por meio de curvas de bézier cúbicas piecewise
+  - Instanciação dos projéteis
+  - Colisão projéteis com plataformas (Colisão Esfera x AABB)
+  - Colisão projéteis com pássaros (Colisão Esfera x Esfera)
+  - Texturização pássaros, letreiros, projétil e plataformas
+  - Letreiros FCG (objeto com iluminação Gouraud)
 - Eduardo:
   - Desenho e movimentação do personagem
   - Câmera livre e look-at
   - Teste de colisão cubo (OBB) x cubo (OBB), usada entre persogem e plataformas e persongem e os letreiros da cena
   - Teste de colisão raio x cubo (AABB), usada para câmera não atravessar plataformas
-  - Textura das plataformas
+  - Texturização personagem e plataformas
   - Skybox
 
 A atribuição dos itens aos nomes não significa que os os itens atribuídos a uma pessoa foram exclusivamente desenvolvidos por ela, apenas que foi *principalmente* desenvolvido por ela.
